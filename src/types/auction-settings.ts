@@ -1,21 +1,21 @@
 export type BudgetType = 'SALARY_CAP' | 'FAAB';
 
 export interface ContractRule {
-  minBid: number;    // Valor mínimo do lance para aplicar esta regra
-  maxBid?: number;   // Valor máximo (opcional, se for o último tier é infinito)
-  years: number;     // Duração do contrato gerado
+  minBid: number;    // valor minimo do lance para aplicar esta regra
+  maxBid?: number;   // valor maximo (opcional, se for o ultimo tier acima eh infinito)
+  years: number;     // duracao do contrato gerado
 }
 
 export interface RosterSettings {
   maxRosterSize: number;
-  positions?: Record<string, number>; // Ex: { "QB": 2, "RB": 4 }
+  positions?: Record<string, number>; // ex: { "QB": 2, "RB": 4 }
 }
 
 export interface AuctionSettings {
   budgetType: BudgetType;
   startingBudget: number;
   
-  // Lógica de Contratos Dinâmicos
+  // Logica de contratos dinamicos
   contractLogic: {
     enabled: boolean;
     rules: ContractRule[];
@@ -23,12 +23,12 @@ export interface AuctionSettings {
   
   roster: RosterSettings;
   
-  // Regras de Lance
-  minIncrement: number; // Ex: 1 ($) ou porcentagem
-  timerSeconds: number; // Tempo do relógio de leilão
+  // Regras de lance
+  minIncrement: number; // ex: 1 ($) ou porcentagem
+  timerSeconds: number; // tempo do relogio de leilao
 }
 
-// Configuração "The Bad Place" para teste
+// Configuracao "The Bad Place" para teste
 export const DEFAULT_SETTINGS: AuctionSettings = {
   budgetType: 'SALARY_CAP',
   startingBudget: 1000,
