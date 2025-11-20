@@ -1,12 +1,10 @@
 'use server';
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-
-const prisma = new PrismaClient();
 
 const SESSION_COOKIE_NAME = 'fa_team_session';
 const SESSION_EXPIRATION = '7d';
@@ -36,7 +34,8 @@ async function setSessionCookie(session: TeamSession) {
     .setExpirationTime(SESSION_EXPIRATION)
     .sign(getJwtSecret());
 
-  cookies().set({
+  const cookieStore = await cookies();
+  cookieStore.set({
     name: SESSION_COOKIE_NAME,
     value: token,
     httpOnly: true,
@@ -47,7 +46,8 @@ async function setSessionCookie(session: TeamSession) {
 }
 
 export async function getTeamSession(): Promise<TeamSession | null> {
-  const token = cookies().get(SESSION_COOKIE_NAME)?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
   if (!token) {
     return null;
@@ -68,7 +68,7 @@ export async function getTeamSession(): Promise<TeamSession | null> {
       };
     }
   } catch {
-    cookies().delete(SESSION_COOKIE_NAME);
+    cookieStore.delete(SESSION_COOKIE_NAME);
   }
 
   return null;
@@ -160,6 +160,7 @@ export async function loginTeam(
 }
 
 export async function logoutTeam(): Promise<ActionResult> {
-  cookies().delete(SESSION_COOKIE_NAME);
+  const cookieStore = await cookies();
+  cookieStore.delete(SESSION_COOKIE_NAME);
   return { success: true };
 }

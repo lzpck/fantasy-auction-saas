@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { getTeamSession } from '@/app/actions/auth';
 import TeamGrid, { TeamCardData } from './team-grid';
-
-const prisma = new PrismaClient();
 
 function formatStatus(status: string) {
   const labelMap: Record<string, string> = {
@@ -19,11 +17,13 @@ function formatStatus(status: string) {
 export default async function RoomPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
+  
   const [room, session] = await Promise.all([
     prisma.auctionRoom.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { teams: true },
     }),
     getTeamSession(),

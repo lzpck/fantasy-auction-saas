@@ -1,9 +1,7 @@
 'use server';
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { DEFAULT_SETTINGS } from '@/types/auction-settings';
-
-const prisma = new PrismaClient();
 
 // --- Tipos da API do Sleeper ---
 
