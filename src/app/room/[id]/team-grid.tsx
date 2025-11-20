@@ -82,53 +82,7 @@ export default function TeamGrid({
     });
   };
 
-  const renderActionButton = (team: TeamCardData) => {
-    const isYours = sessionTeamIds.has(team.id);
 
-    if (isYours) {
-      return (
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => router.push(`/room/${roomId}`)}
-            className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/50 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300 hover:text-emerald-50"
-          >
-            <ShieldCheck className="h-4 w-4" />
-            Acessar Painel
-          </button>
-          <button
-            onClick={handleLogout}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-white/30 hover:text-white"
-          >
-            <DoorOpen className="h-4 w-4" />
-            Sair
-          </button>
-        </div>
-      );
-    }
-
-    return (
-      <button
-        onClick={() => openModal(team)}
-        className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-          team.pinHash
-            ? 'border border-white/20 bg-white/10 text-white hover:border-white/40'
-            : 'border border-sky-400/60 bg-sky-500/10 text-sky-100 hover:border-sky-300 hover:text-white'
-        }`}
-      >
-        {team.pinHash ? (
-          <>
-            <LogIn className="h-4 w-4" />
-            Entrar
-          </>
-        ) : (
-          <>
-            <LockKeyhole className="h-4 w-4" />
-            Reivindicar Time
-          </>
-        )}
-      </button>
-    );
-  };
 
   return (
     <div className="space-y-4">
@@ -140,53 +94,110 @@ export default function TeamGrid({
           return (
             <div
               key={team.id}
-              className={`relative overflow-hidden rounded-2xl border p-5 transition ${
+              className={`relative flex flex-col overflow-hidden rounded-2xl border transition ${
                 isYours
                   ? 'border-emerald-400/60 bg-emerald-500/10 shadow-lg shadow-emerald-500/20'
                   : 'border-white/10 bg-white/5 hover:border-white/20'
               }`}
             >
-              {isYours && (
-                <div className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-50">
-                  <Crown className="h-3.5 w-3.5" />
-                  SEU TIME
-                </div>
-              )}
-
-              <div className="space-y-1">
-                <h3 className="text-xl font-bold text-white">{team.name}</h3>
-                <p className="text-sm text-slate-300">
-                  Dono: {team.ownerName || 'Pendente'}
-                </p>
+              {/* Status Badge (Top Right) */}
+              <div className="absolute right-4 top-4 flex gap-2">
+                {isYours ? (
+                  <div className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-50">
+                    <Crown className="h-3.5 w-3.5" />
+                    SEU TIME
+                  </div>
+                ) : (
+                  <div
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      isClaimed
+                        ? 'bg-white/10 text-slate-300'
+                        : 'bg-emerald-500/10 text-emerald-400'
+                    }`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        isClaimed ? 'bg-slate-500' : 'bg-emerald-400'
+                      }`}
+                    />
+                    {isClaimed ? 'Reivindicado' : 'Disponível'}
+                  </div>
+                )}
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-xl border border-white/5 bg-black/30 px-3 py-2">
-                  <p className="text-slate-400">Budget restante</p>
-                  <p className="text-lg font-semibold text-white">
-                    ${team.budget.toFixed(0)}
+              <div className="p-5">
+                <div className="mb-4 space-y-1">
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                    Time
+                  </p>
+                  <h3 className="truncate text-xl font-bold text-white" title={team.name}>
+                    {team.name}
+                  </h3>
+                  <p className="text-sm text-slate-400">
+                    <span className="text-slate-500">Dono:</span>{' '}
+                    <span className="text-slate-200">
+                      {team.ownerName || 'Pendente'}
+                    </span>
                   </p>
                 </div>
-                <div className="rounded-xl border border-white/5 bg-black/30 px-3 py-2">
-                  <p className="text-slate-400">Vagas</p>
-                  <p className="text-lg font-semibold text-white">
-                    {team.rosterSpots} spots
-                  </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-white/5 bg-black/20 px-3 py-2">
+                    <p className="text-xs text-slate-500">Budget</p>
+                    <p className="text-lg font-semibold text-white">
+                      ${team.budget.toFixed(0)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/5 bg-black/20 px-3 py-2">
+                    <p className="text-xs text-slate-500">Vagas</p>
+                    <p className="text-lg font-semibold text-white">
+                      {team.rosterSpots}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="mt-6 flex items-center justify-between text-sm">
-                <span
-                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${
-                    isClaimed
-                      ? 'border border-white/10 bg-white/10 text-slate-200'
-                      : 'border border-emerald-400/50 bg-emerald-500/10 text-emerald-100'
-                  }`}
-                >
-                  <span className="h-2 w-2 rounded-full bg-current" />
-                  {isClaimed ? 'PIN cadastrado' : 'Sem dono ainda'}
-                </span>
-                {renderActionButton(team)}
+              {/* Action Button (Bottom Full Width) */}
+              <div className="mt-auto border-t border-white/5 bg-white/5 p-4">
+                {isYours ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => router.push(`/room/${roomId}`)}
+                      className="flex items-center justify-center gap-2 rounded-lg bg-emerald-500/20 px-4 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/30"
+                    >
+                      <ShieldCheck className="h-4 w-4" />
+                      Painel
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+                    >
+                      <DoorOpen className="h-4 w-4" />
+                      Sair
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => openModal(team)}
+                    className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+                      team.pinHash
+                        ? 'bg-white/10 text-white hover:bg-white/20'
+                        : 'bg-sky-500 text-slate-950 hover:bg-sky-400 shadow-lg shadow-sky-500/20'
+                    }`}
+                  >
+                    {team.pinHash ? (
+                      <>
+                        <LogIn className="h-4 w-4" />
+                        Entrar com PIN
+                      </>
+                    ) : (
+                      <>
+                        <LockKeyhole className="h-4 w-4" />
+                        Reivindicar Time
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           );

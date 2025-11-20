@@ -19,14 +19,14 @@ export default function HomePage() {
     setSuccess(null);
 
     if (!leagueId || !adminPasscode) {
-      setError("Informe o League ID e uma senha de admin.");
+      setError("Informe o ID da Liga e uma senha de administrador.");
       return;
     }
 
     startTransition(async () => {
       const result = await createRoomFromSleeper(
         leagueId.trim(),
-        adminPasscode.trim(),
+        adminPasscode.trim()
       );
 
       if (result.success && result.roomId) {
@@ -35,7 +35,7 @@ export default function HomePage() {
         return;
       }
 
-      setError(result.error || "Nao foi possivel criar a sala.");
+      setError(result.error || "Não foi possível criar a sala.");
     });
   };
 
@@ -46,21 +46,21 @@ export default function HomePage() {
       <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center px-6 py-16">
         <div className="mb-10 flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 backdrop-blur">
           <Sparkles className="h-4 w-4 text-sky-300" />
-          <span>Drive leagues from a Sleeper ID in seconds</span>
+          <span>Importe sua liga do Sleeper em segundos</span>
         </div>
 
         <div className="grid w-full gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-3xl border border-white/10 bg-white/5 p-10 shadow-2xl backdrop-blur">
             <header className="mb-8">
               <p className="text-sm uppercase tracking-[0.2em] text-slate-400">
-                Fantasy Auction SaaS
+                Plataforma de Leilão Fantasy
               </p>
               <h1 className="mt-2 text-4xl font-black leading-tight text-white">
-                Crie seu Lobby de Leilão a partir do Sleeper.
+                Crie sua Sala de Leilão a partir do Sleeper
               </h1>
               <p className="mt-3 text-lg text-slate-300">
-                Importa donos, budgets e vagas automaticamente. Defina o PIN do
-                comissário e siga direto para o lobby.
+                Importe os times e salary cap automaticamente. Defina a senha
+                de administrador e inicie a sala.
               </p>
             </header>
 
@@ -70,7 +70,7 @@ export default function HomePage() {
             >
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-200">
-                  Sleeper League ID
+                  ID da Liga Sleeper
                 </label>
                 <input
                   value={leagueId}
@@ -82,15 +82,15 @@ export default function HomePage() {
 
               <div className="space-y-2">
                 <label className="flex items-center justify-between text-sm font-semibold text-slate-200">
-                  <span>Senha do Admin (PIN do comissário)</span>
+                  <span>Senha do Administrador (PIN)</span>
                   <span className="text-xs text-slate-400">
-                    minimo 4 caracteres
+                    mínimo 4 caracteres
                   </span>
                 </label>
                 <input
                   value={adminPasscode}
                   onChange={(event) => setAdminPasscode(event.target.value)}
-                  placeholder="defina um PIN para administrar a sala"
+                  placeholder="Defina um PIN para administrar a sala"
                   className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-base text-white outline-none transition ring-0 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/40"
                 />
               </div>
@@ -131,35 +131,34 @@ export default function HomePage() {
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-200">
                 <ShieldCheck className="h-4 w-4 text-emerald-300" />
-                Login via PIN seguro
+                Acesso Simplificado via PIN
               </div>
               <h2 className="text-2xl font-bold text-white">
-                Fluxo pronto para o draft
+                Tudo pronto para o seu Leilão
               </h2>
               <p className="text-slate-300">
-                Cada dono de time cria/usa um PIN de 4 dígitos, recebe um cookie
-                assinado e já entra no lobby preparado para disputar o
-                orçamento.
+                Cada gerente define seu próprio PIN de acesso no primeiro login.
+                Sem necessidade de cadastro por e-mail ou senhas complexas.
               </p>
             </div>
 
             <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
               {[
                 {
-                  title: "Import automático",
-                  body: "Consome liga do Sleeper e cria times com budget e vagas.",
+                  title: "Sincronização Sleeper",
+                  body: "Importação automática de times, orçamentos e configurações da sua liga.",
                 },
                 {
-                  title: "Sessões seguras",
-                  body: "JWT assinado em cookie HttpOnly mantém o dono logado.",
+                  title: "Segurança e Praticidade",
+                  body: "Sistema de autenticação robusto sem complicar a vida dos participantes.",
                 },
                 {
-                  title: "Lobby em tempo real",
-                  body: "Status da sala, times e chamadas rápidas para login/claim.",
+                  title: "Controle em Tempo Real",
+                  body: "Painel administrativo completo para gerenciar o andamento do leilão.",
                 },
                 {
-                  title: "Design dark-ready",
-                  body: "Interface centralizada, contrastante e pronta para SaaS.",
+                  title: "Experiência Premium",
+                  body: "Interface escura e moderna, desenhada para longas sessões de draft.",
                 },
               ].map((feature) => (
                 <div
