@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // Ou "postgresql" para produção
+  url      = env("DATABASE_URL")
+}
+
+// --- ENUMS ---
+
+enum RoomStatus {
+  DRAFT
+  OPEN
+  PAUSED
+  COMPLETED
+}
+
+enum PlayerStatus {
+  PENDING
+  NOMINATED
+  SOLD
+  UNSOLD
+}
+
+enum BidStatus {
+  VALID
+  RETRACTED // O status mágico para nossa regra de "sem multa"
+  VOID      // Para lances inválidos técnicos
+}
+
+enum NotificationType {
+  OUTBID
+  WINNER_RESTORED // Quando alguém retira o lance e você volta a ganhar
+  AUCTION_WON
+  SYSTEM
+}
+
+// --- MODELS ---
+
+model AuctionRoom {
+  id        String     @id @default(cuid())
+  name      String
+  passcode  String     // Senha do Admin/Comissário
+  sleeperId String?    // ID da liga no Sleeper (opcional)
+  status    RoomStatus @default(DRAFT)
+  
+  // Configurações (Tipadas no seu arquivo auction-settings.ts)
+  settings  String     // Armazenaremos como JSON stringificado para compatibilidade SQLite
+  
+  teams     AuctionTeam[]
+  items     AuctionItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuctionTeam {
+  id            String   @id @default(cuid())
+  auctionRoomId String
+  
+  name          String
+  ownerName     String?  // Nome do dono no Sleeper ou manual
+  sleeperOwnerId String? // ID do usuário no Sleeper (para avatar/sync)
+  
+  // Economia
+  budget        Float    // O "Salary Cap" ou "FAAB" disponível inicial
+  rosterSpots   Int      // Vagas totais disponíveis
+
+  // Segurança (O sistema de PIN)
+  pinHash       String?  // Se null, time ainda não foi reivindicado
+  
+  auctionRoom   AuctionRoom @relation(fields: [auctionRoomId], references: [id], onDelete: Cascade)
+  bids          Bid[]
+  notifications Notification[]
+
+  @@index([auctionRoomId])
+}
+
+model AuctionItem {
+  id            String       @id @default(cuid())
+  auctionRoomId String
+  
+  name          String
+  position      String
+  nflTeam       String?      // Ex: "KC", "BUF"
+  
+  status        PlayerStatus @default(PENDING)
+  
+  // Resultado do Leilão
+  winningBidId  String?      @unique
+  winningTeamId String?
+  contractYears Int?         // Calculado ao fechar o leilão
+  
+  auctionRoom   AuctionRoom  @relation(fields: [auctionRoomId], references: [id], onDelete: Cascade)
+  bids          Bid[]
+
+  @@index([auctionRoomId])
+}
+
+model Bid {
+  id            String    @id @default(cuid())
+  auctionItemId String
+  teamId        String
+  
+  amount        Float
+  timestamp     DateTime  @default(now())
+  status        BidStatus @default(VALID)
+
+  auctionItem   AuctionItem @relation(fields: [auctionItemId], references: [id], onDelete: Cascade)
+  team          AuctionTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  
+  // Relação inversa para saber se este bid foi o vencedor (opcional, mas ajuda)
+  wonItem       AuctionItem? @relation("BidWonItem") 
+
+  @@index([auctionItemId])
+  @@index([teamId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  teamId    String
+  type      NotificationType
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  
+  // Metadados opcionais para navegação (Ex: clicar na notif e ir pro jogador)
+  relatedItemId String?
+
+  team      AuctionTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, isRead]) // Índice otimizado para o "Smart Polling"
+}
