@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "sqlite" // ou "postgresql" para producao
-  url      = env("DATABASE_URL")
 }
 
 // --- ENUMS ---
@@ -94,6 +93,7 @@ model AuctionItem {
   
   auctionRoom   AuctionRoom  @relation(fields: [auctionRoomId], references: [id], onDelete: Cascade)
   bids          Bid[]
+  winningBid    Bid?         @relation("BidWonItem", fields: [winningBidId], references: [id])
 
   @@index([auctionRoomId])
 }

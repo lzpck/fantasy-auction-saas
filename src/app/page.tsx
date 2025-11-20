@@ -1,373 +1,179 @@
 "use client";
 
-import { useState } from "react";
-
-type TabKey = "schema" | "types" | "seed";
-
-const schemaCode = `// prisma/schema.prisma
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "sqlite" // ou "postgresql" para producao
-  url      = env("DATABASE_URL")
-}
-
-// --- ENUMS ---
-
-enum RoomStatus {
-  DRAFT
-  OPEN
-  PAUSED
-  COMPLETED
-}
-
-enum PlayerStatus {
-  PENDING
-  NOMINATED
-  SOLD
-  UNSOLD
-}
-
-enum BidStatus {
-  VALID
-  RETRACTED // status util para a regra de "retirar lance" sem multa
-  VOID      // lances invalidados tecnicamente
-}
-
-enum NotificationType {
-  OUTBID
-  WINNER_RESTORED // quando alguem retira o lance e voce volta a ganhar
-  AUCTION_WON
-  SYSTEM
-}
-
-// --- MODELS ---
-
-model AuctionRoom {
-  id        String     @id @default(cuid())
-  name      String
-  passcode  String     // senha do admin/comissario
-  sleeperId String?    // ID da liga no Sleeper (opcional)
-  status    RoomStatus @default(DRAFT)
-  
-  // Configuracoes tipadas em src/types/auction-settings.ts
-  settings  String     // persistido como JSON stringificado para compatibilidade SQLite
-  
-  teams     AuctionTeam[]
-  items     AuctionItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model AuctionTeam {
-  id             String   @id @default(cuid())
-  auctionRoomId  String
-  
-  name           String
-  ownerName      String?  // nome do dono no Sleeper ou manual
-  sleeperOwnerId String?  // ID do usuario no Sleeper (para avatar/sync)
-  
-  // Economia
-  budget       Float    // Salary Cap ou FAAB disponivel inicial
-  rosterSpots  Int      // vagas totais disponiveis
-
-  // Seguranca (PIN de acesso)
-  pinHash      String?  // se null, time ainda nao foi reivindicado
-  
-  auctionRoom   AuctionRoom @relation(fields: [auctionRoomId], references: [id], onDelete: Cascade)
-  bids          Bid[]
-  notifications Notification[]
-
-  @@index([auctionRoomId])
-}
-
-model AuctionItem {
-  id            String       @id @default(cuid())
-  auctionRoomId String
-  
-  name          String
-  position      String
-  nflTeam       String?      // ex: "KC", "BUF"
-  
-  status        PlayerStatus @default(PENDING)
-  
-  // Resultado do leilao
-  winningBidId  String?      @unique
-  winningTeamId String?
-  contractYears Int?         // calculado ao fechar o leilao
-  
-  auctionRoom   AuctionRoom  @relation(fields: [auctionRoomId], references: [id], onDelete: Cascade)
-  bids          Bid[]
-
-  @@index([auctionRoomId])
-}
-
-model Bid {
-  id            String    @id @default(cuid())
-  auctionItemId String
-  teamId        String
-  
-  amount        Float
-  timestamp     DateTime  @default(now())
-  status        BidStatus @default(VALID)
-
-  auctionItem   AuctionItem @relation(fields: [auctionItemId], references: [id], onDelete: Cascade)
-  team          AuctionTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  
-  // Relacao inversa para saber se este bid foi o vencedor
-  wonItem       AuctionItem? @relation("BidWonItem")
-
-  @@index([auctionItemId])
-  @@index([teamId])
-}
-
-model Notification {
-  id        String           @id @default(cuid())
-  teamId    String
-  type      NotificationType
-  message   String
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
-  
-  // Metadados opcionais para navegacao (ex: clicar na notif e ir ate o jogador)
-  relatedItemId String?
-
-  team      AuctionTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
-
-  @@index([teamId, isRead]) // indice otimizado para o "Smart Polling"
-}`;
-
-const typesCode = `// src/types/auction-settings.ts
-export type BudgetType = 'SALARY_CAP' | 'FAAB';
-
-export interface ContractRule {
-  minBid: number;    // valor minimo do lance para aplicar esta regra
-  maxBid?: number;   // valor maximo (opcional, se for o ultimo tier acima eh infinito)
-  years: number;     // duracao do contrato gerado
-}
-
-export interface RosterSettings {
-  maxRosterSize: number;
-  positions?: Record<string, number>; // ex: { "QB": 2, "RB": 4 }
-}
-
-export interface AuctionSettings {
-  budgetType: BudgetType;
-  startingBudget: number;
-  
-  // Logica de contratos dinamicos
-  contractLogic: {
-    enabled: boolean;
-    rules: ContractRule[];
-  };
-  
-  roster: RosterSettings;
-  
-  // Regras de lance
-  minIncrement: number; // ex: 1 ($) ou porcentagem
-  timerSeconds: number; // tempo do relogio de leilao
-}
-
-// Configuracao "The Bad Place" para teste
-export const DEFAULT_SETTINGS: AuctionSettings = {
-  budgetType: 'SALARY_CAP',
-  startingBudget: 1000,
-  contractLogic: {
-    enabled: true,
-    rules: [
-      { minBid: 1, maxBid: 9, years: 1 },
-      { minBid: 10, maxBid: 49, years: 2 },
-      { minBid: 50, maxBid: 99, years: 3 },
-      { minBid: 100, years: 4 }
-    ]
-  },
-  roster: {
-    maxRosterSize: 20
-  },
-  minIncrement: 1,
-  timerSeconds: 30
-};`;
-
-const seedCode = `// prisma/seed.ts
-import { PlayerStatus, PrismaClient, RoomStatus } from '@prisma/client';
-import { DEFAULT_SETTINGS } from '../src/types/auction-settings';
-
-const prisma = new PrismaClient();
-
-// simulacao simples de hash (em producao, use bcrypt ou argon2)
-const simpleHash = (pin: string) => \`hashed_\${pin}\`;
-
-async function main() {
-  console.log('[seed] Iniciando seed do banco de dados...');
-
-  const settingsJson = JSON.stringify(DEFAULT_SETTINGS);
-
-  const room = await prisma.auctionRoom.create({
-    data: {
-      name: 'The Bad Place - League 1',
-      passcode: 'admin123', // senha do comissario para criar/pausar
-      status: RoomStatus.OPEN,
-      settings: settingsJson,
-    },
-  });
-
-  console.log(\`[seed] Sala criada: \${room.name} (ID: \${room.id})\`);
-
-  const teams = await prisma.$transaction([
-    prisma.auctionTeam.create({
-      data: {
-        name: 'Team Michael',
-        ownerName: 'Michael',
-        pinHash: simpleHash('1234'), // PIN: 1234
-        budget: DEFAULT_SETTINGS.startingBudget,
-        rosterSpots: DEFAULT_SETTINGS.roster.maxRosterSize,
-        auctionRoomId: room.id,
-      },
-    }),
-    prisma.auctionTeam.create({
-      data: {
-        name: 'Team Eleanor',
-        ownerName: 'Eleanor',
-        pinHash: simpleHash('9999'), // PIN: 9999
-        budget: DEFAULT_SETTINGS.startingBudget,
-        rosterSpots: DEFAULT_SETTINGS.roster.maxRosterSize,
-        auctionRoomId: room.id,
-      },
-    }),
-  ]);
-
-  console.log(\`[seed] Times criados: \${teams.map((team) => team.name).join(' e ')}\`);
-
-  const players = [
-    { name: 'Patrick Mahomes', position: 'QB', nflTeam: 'KC' },
-    { name: 'Justin Jefferson', position: 'WR', nflTeam: 'MIN' },
-    { name: 'Christian McCaffrey', position: 'RB', nflTeam: 'SF' },
-    { name: 'Travis Kelce', position: 'TE', nflTeam: 'KC' },
-    { name: 'Tyreek Hill', position: 'WR', nflTeam: 'MIA' },
-  ];
-
-  await prisma.auctionItem.createMany({
-    data: players.map((player) => ({
-      ...player,
-      auctionRoomId: room.id,
-      status: PlayerStatus.PENDING,
-    })),
-  });
-
-  console.log(\`[seed] \${players.length} jogadores adicionados ao pool.\`);
-}
-
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });`;
-
-function CodeBlock({
-  title,
-  code,
-  language = "typescript",
-}: {
-  title: string;
-  code: string;
-  language?: string;
-}) {
-  return (
-    <div className="mb-6 overflow-hidden rounded-lg border border-slate-200 shadow-sm">
-      <div className="flex items-center justify-between border-b border-slate-200 bg-slate-100 px-4 py-2">
-        <span className="font-mono text-sm font-semibold text-slate-700">{title}</span>
-        <span className="text-xs uppercase text-slate-500">{language}</span>
-      </div>
-      <pre className="bg-slate-900 p-4 text-sm leading-relaxed text-slate-50 overflow-x-auto whitespace-pre" aria-label={title}>
-        <code>{code}</code>
-      </pre>
-    </div>
-  );
-}
+import { Sparkles, ShieldCheck, ArrowRight, Activity } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { createRoomFromSleeper } from "./actions/create-room";
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<TabKey>("schema");
+  const router = useRouter();
+  const [leagueId, setLeagueId] = useState("");
+  const [adminPasscode, setAdminPasscode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    if (!leagueId || !adminPasscode) {
+      setError("Informe o League ID e uma senha de admin.");
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await createRoomFromSleeper(
+        leagueId.trim(),
+        adminPasscode.trim(),
+      );
+
+      if (result.success && result.roomId) {
+        setSuccess("Sala criada com sucesso. Redirecionando...");
+        router.push(`/room/${result.roomId}`);
+        return;
+      }
+
+      setError(result.error || "Nao foi possivel criar a sala.");
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8 text-slate-900">
-      <div className="mx-auto max-w-5xl">
-        <header className="mb-10">
-          <div className="mb-2 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-xl font-bold text-white shadow-lg">
-              FA
-            </div>
-            <div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Fantasy Auction SaaS</h1>
-              <p className="text-lg text-slate-600">Arquitetura do App Router com Prisma e tipagem de configuracoes.</p>
-            </div>
-          </div>
-        </header>
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-zinc-900 text-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.1),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(14,165,233,0.12),transparent_30%),radial-gradient(circle_at_50%_80%,rgba(236,72,153,0.08),transparent_35%)]" />
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
-          <nav className="space-y-2 lg:col-span-1">
-            {(
-              [
-                { key: "schema" as const, label: "Prisma Schema" },
-                { key: "types" as const, label: "TypeScript Settings" },
-                { key: "seed" as const, label: "Seed Script" },
-              ] satisfies { key: TabKey; label: string }[]
-            ).map(({ key, label }) => (
+      <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center px-6 py-16">
+        <div className="mb-10 flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 backdrop-blur">
+          <Sparkles className="h-4 w-4 text-sky-300" />
+          <span>Drive leagues from a Sleeper ID in seconds</span>
+        </div>
+
+        <div className="grid w-full gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-10 shadow-2xl backdrop-blur">
+            <header className="mb-8">
+              <p className="text-sm uppercase tracking-[0.2em] text-slate-400">
+                Fantasy Auction SaaS
+              </p>
+              <h1 className="mt-2 text-4xl font-black leading-tight text-white">
+                Crie seu Lobby de Leilão a partir do Sleeper.
+              </h1>
+              <p className="mt-3 text-lg text-slate-300">
+                Importa donos, budgets e vagas automaticamente. Defina o PIN do
+                comissário e siga direto para o lobby.
+              </p>
+            </header>
+
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-4 rounded-2xl border border-white/10 bg-black/40 p-6 shadow-inner"
+            >
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-200">
+                  Sleeper League ID
+                </label>
+                <input
+                  value={leagueId}
+                  onChange={(event) => setLeagueId(event.target.value)}
+                  placeholder="ex: 1050453674455541760"
+                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-base text-white outline-none transition ring-0 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/40"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="flex items-center justify-between text-sm font-semibold text-slate-200">
+                  <span>Senha do Admin (PIN do comissário)</span>
+                  <span className="text-xs text-slate-400">
+                    minimo 4 caracteres
+                  </span>
+                </label>
+                <input
+                  value={adminPasscode}
+                  onChange={(event) => setAdminPasscode(event.target.value)}
+                  placeholder="defina um PIN para administrar a sala"
+                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-base text-white outline-none transition ring-0 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/40"
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+                  {error}
+                </div>
+              )}
+
+              {success && (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+                  {success}
+                </div>
+              )}
+
               <button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                className={`w-full rounded-md px-4 py-3 text-left font-medium transition-all ${
-                  activeTab === key
-                    ? "bg-blue-600 text-white shadow-md"
-                    : "bg-white text-slate-600 hover:bg-slate-100"
-                }`}
+                type="submit"
+                disabled={isPending}
+                className="group relative flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-emerald-400 px-5 py-3 text-lg font-semibold text-slate-950 shadow-lg shadow-sky-500/20 transition hover:scale-[1.01] hover:shadow-sky-500/30 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {label}
+                {isPending ? (
+                  <>
+                    <Activity className="h-5 w-5 animate-spin" />
+                    Carregando...
+                  </>
+                ) : (
+                  <>
+                    Criar Sala de Leilão
+                    <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  </>
+                )}
               </button>
-            ))}
-          </nav>
+            </form>
+          </div>
 
-          <main className="lg:col-span-3 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            {activeTab === "schema" && (
-              <div>
-                <h3 className="mb-4 text-xl font-bold">Estrutura do banco de dados</h3>
-                <p className="mb-4 text-slate-600">
-                  O arquivo <code className="rounded bg-slate-100 px-1 py-0.5 text-sm text-blue-700">schema.prisma</code> define a espinha dorsal do sistema.
-                </p>
-                <ul className="mb-6 list-inside list-disc space-y-2 text-slate-700">
-                  <li><strong>AuctionRoom:</strong> campo <code className="bg-slate-100 p-1 text-sm font-mono">settings</code> guarda as regras em JSON tipadas.</li>
-                  <li><strong>AuctionTeam:</strong> usa <code className="bg-slate-100 p-1 text-sm font-mono">pinHash</code> (login via PIN) e <code className="bg-slate-100 p-1 text-sm font-mono">rosterSpots</code> para controle de vagas.</li>
-                  <li><strong>Bid:</strong> permite status <code className="bg-slate-100 p-1 text-sm font-mono">RETRACTED</code> para suportar retirada sem multa.</li>
-                </ul>
-                <CodeBlock title="prisma/schema.prisma" code={schemaCode} language="prisma" />
+          <aside className="flex flex-col justify-between rounded-3xl border border-white/10 bg-gradient-to-b from-slate-900/80 to-black/60 p-8 shadow-2xl backdrop-blur">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-200">
+                <ShieldCheck className="h-4 w-4 text-emerald-300" />
+                Login via PIN seguro
               </div>
-            )}
+              <h2 className="text-2xl font-bold text-white">
+                Fluxo pronto para o draft
+              </h2>
+              <p className="text-slate-300">
+                Cada dono de time cria/usa um PIN de 4 dígitos, recebe um cookie
+                assinado e já entra no lobby preparado para disputar o
+                orçamento.
+              </p>
+            </div>
 
-            {activeTab === "types" && (
-              <div>
-                <h3 className="mb-4 text-xl font-bold">Tipagem das configuracoes</h3>
-                <p className="mb-4 text-slate-600">
-                  Interfaces TypeScript que descrevem budget, contratos dinamicos e regras de lance em <code className="rounded bg-slate-100 px-1 py-0.5 text-sm text-blue-700">src/types/auction-settings.ts</code>.
-                </p>
-                <CodeBlock title="src/types/auction-settings.ts" code={typesCode} />
-              </div>
-            )}
-
-            {activeTab === "seed" && (
-              <div>
-                <h3 className="mb-4 text-xl font-bold">Script de seed</h3>
-                <p className="mb-4 text-slate-600">
-                  Popula uma liga teste com PIN de admin, times e jogadores para rodar fluxos rapidamente.
-                </p>
-                <CodeBlock title="prisma/seed.ts" code={seedCode} language="typescript" />
-              </div>
-            )}
-          </main>
+            <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
+              {[
+                {
+                  title: "Import automático",
+                  body: "Consome liga do Sleeper e cria times com budget e vagas.",
+                },
+                {
+                  title: "Sessões seguras",
+                  body: "JWT assinado em cookie HttpOnly mantém o dono logado.",
+                },
+                {
+                  title: "Lobby em tempo real",
+                  body: "Status da sala, times e chamadas rápidas para login/claim.",
+                },
+                {
+                  title: "Design dark-ready",
+                  body: "Interface centralizada, contrastante e pronta para SaaS.",
+                },
+              ].map((feature) => (
+                <div
+                  key={feature.title}
+                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left"
+                >
+                  <p className="text-sm font-semibold text-white">
+                    {feature.title}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-300">{feature.body}</p>
+                </div>
+              ))}
+            </div>
+          </aside>
         </div>
       </div>
     </div>

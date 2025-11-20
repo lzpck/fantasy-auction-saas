@@ -23,6 +23,8 @@
 
 # prisma
 /prisma/*.db
+*.db
+*.db-journal
 
 # misc
 .DS_Store
