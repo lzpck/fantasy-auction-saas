@@ -38,6 +38,15 @@ enum NotificationType {
 
 // --- MODELS ---
 
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  rooms        AuctionRoom[]
+}
+
 model AuctionRoom {
   id        String     @id @default(cuid())
   name      String
@@ -45,6 +54,9 @@ model AuctionRoom {
   sleeperId String?    // ID da liga no Sleeper (opcional)
   status    RoomStatus @default(DRAFT)
   
+  ownerId   String
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
   // Configuracoes tipadas em src/types/auction-settings.ts
   settings  String     // persistido como JSON stringificado para compatibilidade SQLite
   

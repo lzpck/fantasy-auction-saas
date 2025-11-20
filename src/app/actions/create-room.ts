@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { DEFAULT_SETTINGS } from '@/types/auction-settings';
+import { getAdminSession } from './admin-auth';
 
 // --- Tipos da API do Sleeper ---
 
@@ -139,6 +140,15 @@ export async function createRoomFromSleeper(
       };
     }
 
+    const session = await getAdminSession();
+
+    if (!session) {
+      return {
+        success: false,
+        error: 'Nao autorizado. Faca login como administrador.',
+      };
+    }
+
     const [league, users, rosters] = await Promise.all([
       fetchSleeperLeague(sleeperLeagueId),
       fetchSleeperUsers(sleeperLeagueId),
@@ -185,6 +195,7 @@ export async function createRoomFromSleeper(
         passcode: adminPasscode,
         sleeperId: sleeperLeagueId,
         status: 'DRAFT',
+        ownerId: session.userId,
         settings: JSON.stringify(DEFAULT_SETTINGS),
         teams: {
           create: teamsData,

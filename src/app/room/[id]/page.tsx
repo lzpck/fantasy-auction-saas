@@ -77,7 +77,7 @@ export default async function RoomPage({
             )}
           </div>
 
-          <TeamGrid roomId={params.id} teams={teams} session={session} />
+          <TeamGrid roomId={id} teams={teams} session={session} />
         </div>
       </div>
     </div>
