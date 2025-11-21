@@ -103,6 +103,7 @@ model AuctionItem {
   winningBidId  String?      @unique
   winningTeamId String?
   contractYears Int?         // calculado ao fechar o leilao
+  expiresAt     DateTime?    // Data/hora de expiracao do lance atual
   
   auctionRoom   AuctionRoom  @relation(fields: [auctionRoomId], references: [id], onDelete: Cascade)
   bids          Bid[]

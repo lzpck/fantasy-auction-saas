@@ -1,7 +1,9 @@
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { getTeamSession } from '@/app/actions/auth';
+import { getAdminSession } from '@/app/actions/admin-auth';
 import TeamGrid, { TeamCardData } from './team-grid';
+import { AuctionRoomClient } from '@/components/auction/AuctionRoomClient';
 
 function formatStatus(status: string) {
   const labelMap: Record<string, string> = {
@@ -21,16 +23,23 @@ export default async function RoomPage({
 }) {
   const { id } = await params;
   
-  const [room, session] = await Promise.all([
+  const [room, teamSession, adminSession] = await Promise.all([
     prisma.auctionRoom.findUnique({
       where: { id },
       include: { teams: true },
     }),
     getTeamSession(),
+    getAdminSession(),
   ]);
 
   if (!room) {
     notFound();
+  }
+
+  const isOwner = adminSession?.userId === room.ownerId;
+
+  if (teamSession && teamSession.roomId === id) {
+    return <AuctionRoomClient roomId={id} isOwner={isOwner} />;
   }
 
   const teams: TeamCardData[] = room.teams.map((team) => ({
@@ -70,14 +79,14 @@ export default async function RoomPage({
                 Reivindique seu time com PIN ou faça login para continuar.
               </p>
             </div>
-            {session && (
+            {teamSession && (
               <div className="rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-100">
                 Sessao ativa
               </div>
             )}
           </div>
 
-          <TeamGrid roomId={id} teams={teams} session={session} />
+          <TeamGrid roomId={id} teams={teams} session={teamSession} />
         </div>
       </div>
     </div>
