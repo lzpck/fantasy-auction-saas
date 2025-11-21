@@ -43,10 +43,10 @@ function TableCountdown({ expiresAt }: { expiresAt: Date | null }) {
     return () => clearInterval(interval);
   }, [expiresAt]);
 
-  if (!expiresAt) return <span className="text-slate-500">-</span>;
+  if (!expiresAt) return <span className="text-slate-500 text-right block">-</span>;
 
   return (
-    <div className="flex items-center gap-1 text-xs font-mono text-amber-400">
+    <div className="flex items-center justify-end gap-1 text-xs font-mono text-amber-400">
       <Clock size={12} />
       {timeLeft}
     </div>
