@@ -4,8 +4,8 @@ import type { AuctionItem, AuctionRoom, AuctionTeam, Bid } from '@prisma/client'
 export interface AuctionSyncData {
   room: Pick<AuctionRoom, 'status' | 'settings'>;
   teams: Pick<AuctionTeam, 'id' | 'name' | 'budget' | 'rosterSpots'>[];
-  activeItems: (AuctionItem & { winningBid: Bid | null; expiresAt: Date | null })[];
-  marketItems: (AuctionItem & { winningBid: Bid | null })[];
+  activeItems: (AuctionItem & { winningBid: (Bid & { team: { name: string; ownerName: string | null } }) | null; expiresAt: Date | null })[];
+  marketItems: (AuctionItem & { winningBid: (Bid & { team: { name: string; ownerName: string | null } }) | null })[];
   me: AuctionTeam & {
     availableBudget: number;
     spotsRemaining: number;

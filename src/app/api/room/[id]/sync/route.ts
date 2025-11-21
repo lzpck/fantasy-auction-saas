@@ -26,21 +26,39 @@ export async function GET(
         select: { id: true, name: true, budget: true, rosterSpots: true },
       }),
       prisma.auctionItem.findMany({
-        where: { 
+        where: {
           auctionRoomId: id,
           status: 'NOMINATED'
         },
         include: {
-          winningBid: true,
+          winningBid: {
+            include: {
+              team: {
+                select: {
+                  name: true,
+                  ownerName: true,
+                }
+              }
+            }
+          },
         },
       }),
       prisma.auctionItem.findMany({
-        where: { 
+        where: {
           auctionRoomId: id,
           status: 'PENDING'
         },
         include: {
-          winningBid: true,
+          winningBid: {
+            include: {
+              team: {
+                select: {
+                  name: true,
+                  ownerName: true,
+                }
+              }
+            }
+          },
         },
       }),
       prisma.auctionTeam.findUnique({

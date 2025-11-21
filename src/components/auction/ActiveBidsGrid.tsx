@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 
 interface ActiveBidsGridProps {
   myTeamId: string;
-  activeBids: (AuctionItem & { winningBid: Bid | null; winningTeamName?: string; expiresAt: Date | null })[];
+  activeBids: (AuctionItem & { winningBid: (Bid & { team: { name: string; ownerName: string | null } }) | null; expiresAt: Date | null })[];
   onBid: (playerId: string, amount: number) => void;
   onRetract?: (itemId: string) => void;
   isOwner?: boolean;
@@ -159,9 +159,24 @@ export function ActiveBidsGrid({
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
                         <span className="text-xs text-slate-400">Vencendo</span>
-                        <span className="text-xs font-semibold text-slate-300 truncate max-w-[120px]" title={isWinning ? 'Você' : item.winningTeamName || 'Desconhecido'}>
-                          {isWinning ? 'Você' : item.winningTeamName || '—'}
-                        </span>
+                        {isWinning ? (
+                          <span className="text-xs font-semibold text-slate-300">
+                            Você
+                          </span>
+                        ) : item.winningBid?.team ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-xs font-semibold text-slate-300 truncate max-w-[120px]" title={item.winningBid.team.name}>
+                              {item.winningBid.team.name}
+                            </span>
+                            {item.winningBid.team.ownerName && (
+                              <span className="text-xs text-slate-500 truncate max-w-[120px]" title={item.winningBid.team.ownerName}>
+                                {item.winningBid.team.ownerName}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-500">—</span>
+                        )}
                       </div>
                       <div className="text-right">
                         <span className="font-mono text-xl font-bold text-slate-200 block">

@@ -64,7 +64,7 @@ export function MarketTable({ roomId, onBid, myTeamId }: MarketTableProps) {
     { keepPreviousData: true }
   );
 
-  const items: (AuctionItem & { winningBid: Bid & { team: { name: string } } | null; expiresAt: Date | null })[] = data?.items || [];
+  const items: (AuctionItem & { winningBid: (Bid & { team: { name: string; ownerName: string | null } }) | null; expiresAt: Date | null })[] = data?.items || [];
   const totalPages = data?.totalPages || 1;
 
   return (
@@ -190,8 +190,21 @@ export function MarketTable({ roomId, onBid, myTeamId }: MarketTableProps) {
                   <td className="p-3 text-right font-mono text-slate-300">
                     {currentBid > 0 ? `$${currentBid}` : '-'}
                   </td>
-                  <td className="p-3 text-right text-xs text-slate-400">
-                    {item.winningBid?.team?.name || '-'}
+                  <td className="p-3 text-right">
+                    {item.winningBid ? (
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="text-xs font-semibold text-slate-300">
+                          {item.winningBid.team.name}
+                        </span>
+                        {item.winningBid.team.ownerName && (
+                          <span className="text-xs text-slate-500">
+                            {item.winningBid.team.ownerName}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-500">-</span>
+                    )}
                   </td>
                   <td className="p-3 text-right">
                     <TableCountdown expiresAt={item.expiresAt ? new Date(item.expiresAt) : null} />

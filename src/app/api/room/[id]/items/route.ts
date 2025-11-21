@@ -48,11 +48,20 @@ export async function GET(
         skip,
         take: limit,
         include: {
-          winningBid: true,
+          winningBid: {
+            include: {
+              team: {
+                select: {
+                  name: true,
+                  ownerName: true,
+                }
+              }
+            }
+          },
         },
         orderBy: [
             { status: 'asc' }, // NOMINATED < PENDING < SOLD (alphabetical order of enum strings might not be ideal, but let's see)
-            // Actually, we want NOMINATED first. 
+            // Actually, we want NOMINATED first.
             // Prisma doesn't support custom sort order easily without raw query.
             // For now, let's sort by name, and the frontend handles the "Nominated" visual priority if they are in the list.
             // OR we can rely on the status filter.
