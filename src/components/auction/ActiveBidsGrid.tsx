@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, AlertCircle, Clock, Undo2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { AuctionSettings } from '@/types/auction-settings';
+import { formatCurrencyMillions } from '@/lib/format-millions';
 
 
 interface ActiveBidsGridProps {
@@ -98,14 +99,14 @@ export function ActiveBidsGrid({
             const currentBid = item.winningBid?.amount || 0;
 
             // Calculate next bid based on room settings
-            const minIncrement = settings.minIncrement || 1;
-            let nextBid = 1;
+            const minIncrement = settings.minIncrement || 1000000; // Default 1M
+            let nextBid = 1000000; // Default 1M
             if (currentBid > 0) {
               if (minIncrement < 1) {
                 // Percentage-based (e.g., 0.15 = 15%)
                 nextBid = Math.ceil(currentBid * (1 + minIncrement));
               } else {
-                // Fixed amount (e.g., 5 = $5)
+                // Fixed amount increment (already in millions)
                 nextBid = currentBid + minIncrement;
               }
             }
@@ -195,7 +196,7 @@ export function ActiveBidsGrid({
                       </div>
                       <div className="text-right">
                         <span className="font-mono text-xl font-bold text-slate-200 block">
-                          ${currentBid}
+                          {formatCurrencyMillions(currentBid)}
                         </span>
                         {item.contractYears && (
                           <span className="text-xs text-slate-400 font-mono">
@@ -213,7 +214,7 @@ export function ActiveBidsGrid({
                     className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg shadow-lg shadow-rose-900/50 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <AlertCircle size={16} />
-                    COBRIR (${nextBid})
+                    COBRIR ({formatCurrencyMillions(nextBid)})
                   </button>
                 )}
                 

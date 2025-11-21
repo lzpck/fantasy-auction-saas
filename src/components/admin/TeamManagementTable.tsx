@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { updateTeamStats, createTeam } from '@/app/actions/admin-room';
 import { Save, Check, AlertCircle, Plus } from 'lucide-react';
+import { parseFromMillions, toMillionsInput } from '@/lib/format-millions';
 
 interface Team {
   id: string;
@@ -21,17 +22,18 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
   const [saving, setSaving] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // New Team State
+  // New Team State - budget stored in millions for input
   const [newTeam, setNewTeam] = useState({ name: '', budget: 200, spots: 15 });
   const [isCreating, setIsCreating] = useState(false);
 
   const handleInputChange = (teamId: string, field: 'name' | 'budget' | 'spots', value: string | number) => {
+    const team = teams.find(t => t.id === teamId);
     setEditingTeams(prev => ({
       ...prev,
       [teamId]: {
-        name: prev[teamId]?.name ?? teams.find(t => t.id === teamId)?.name ?? '',
-        budget: prev[teamId]?.budget ?? teams.find(t => t.id === teamId)?.budget ?? 0,
-        spots: prev[teamId]?.spots ?? teams.find(t => t.id === teamId)?.rosterSpots ?? 0,
+        name: prev[teamId]?.name ?? team?.name ?? '',
+        budget: prev[teamId]?.budget ?? (team ? toMillionsInput(team.budget) : 0),
+        spots: prev[teamId]?.spots ?? team?.rosterSpots ?? 0,
         [field]: value
       }
     }));
@@ -44,7 +46,10 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
     setSaving(teamId);
     setMessage(null);
 
-    const result = await updateTeamStats(teamId, updates.name, updates.budget, updates.spots);
+    // Convert budget from millions to actual value
+    const actualBudget = parseFromMillions(updates.budget);
+
+    const result = await updateTeamStats(teamId, updates.name, actualBudget, updates.spots);
 
     if (result.success) {
       setMessage({ type: 'success', text: 'Time atualizado com sucesso!' });
@@ -70,7 +75,10 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
     setIsCreating(true);
     setMessage(null);
 
-    const result = await createTeam(roomId, newTeam.name, newTeam.budget, newTeam.spots);
+    // Convert budget from millions to actual value
+    const actualBudget = parseFromMillions(newTeam.budget);
+
+    const result = await createTeam(roomId, newTeam.name, actualBudget, newTeam.spots);
 
     if (result.success) {
       setMessage({ type: 'success', text: 'Time criado com sucesso!' });
@@ -109,14 +117,19 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
                 className="w-full bg-slate-950 border border-white/10 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
             </div>
-            <div className="w-24 space-y-1">
-              <label className="text-xs text-slate-400">Budget</label>
-              <input
-                type="number"
-                value={newTeam.budget}
-                onChange={(e) => setNewTeam(prev => ({ ...prev, budget: Number(e.target.value) }))}
-                className="w-full bg-slate-950 border border-white/10 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-              />
+            <div className="w-32 space-y-1">
+              <label className="text-xs text-slate-400">Budget (Milhões)</label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={newTeam.budget}
+                  onChange={(e) => setNewTeam(prev => ({ ...prev, budget: Number(e.target.value) }))}
+                  className="w-full bg-slate-950 border border-white/10 rounded pl-6 pr-8 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-semibold">M</span>
+              </div>
             </div>
             <div className="w-24 space-y-1">
               <label className="text-xs text-slate-400">Vagas</label>
@@ -143,7 +156,7 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
           <thead className="bg-slate-900 text-white">
             <tr>
               <th className="px-4 py-3">Time</th>
-              <th className="px-4 py-3">Budget ($)</th>
+              <th className="px-4 py-3">Budget (Milhões)</th>
               <th className="px-4 py-3">Vagas</th>
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
@@ -152,7 +165,7 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
             {teams.map((team) => {
               const isEditing = !!editingTeams[team.id];
               const currentName = isEditing ? editingTeams[team.id].name : team.name;
-              const currentBudget = isEditing ? editingTeams[team.id].budget : team.budget;
+              const currentBudget = isEditing ? editingTeams[team.id].budget : toMillionsInput(team.budget);
               const currentSpots = isEditing ? editingTeams[team.id].spots : team.rosterSpots;
 
               return (
@@ -166,12 +179,17 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
                     />
                   </td>
                   <td className="px-4 py-3">
-                    <input
-                      type="number"
-                      value={currentBudget}
-                      onChange={(e) => handleInputChange(team.id, 'budget', Number(e.target.value))}
-                      className="w-24 bg-slate-950 border border-white/10 rounded px-2 py-1 text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
-                    />
+                    <div className="relative inline-block">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={currentBudget}
+                        onChange={(e) => handleInputChange(team.id, 'budget', Number(e.target.value))}
+                        className="w-28 bg-slate-950 border border-white/10 rounded pl-6 pr-8 py-1 text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-semibold">M</span>
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <input

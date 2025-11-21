@@ -1,10 +1,11 @@
 'use client';
 
-import { LogOut, Play, Pause } from 'lucide-react';
+import { LogOut, Play, Pause, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { toggleRoomStatus } from '@/app/actions/room-actions';
 import { useTransition } from 'react';
 import type { RoomStatus } from '@prisma/client';
+import { formatCurrencyMillions } from '@/lib/format-millions';
 
 interface AuctionHeaderProps {
   teamName: string;
@@ -13,6 +14,7 @@ interface AuctionHeaderProps {
   roomId: string;
   roomStatus: RoomStatus;
   isOwner: boolean;
+  isRealtimeUpdate?: boolean;
 }
 
 export function AuctionHeader({
@@ -22,6 +24,7 @@ export function AuctionHeader({
   roomId,
   roomStatus,
   isOwner,
+  isRealtimeUpdate = false,
 }: AuctionHeaderProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -34,6 +37,13 @@ export function AuctionHeader({
   return (
     <header className="fixed top-0 left-0 right-0 h-20 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 z-50 flex items-center justify-between px-6 shadow-lg">
       <div className="flex items-center gap-6">
+        {/* Real-time Sync Indicator */}
+        {isRealtimeUpdate && (
+          <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2 py-1 rounded-full text-xs font-medium animate-pulse">
+            <RefreshCw size={10} className="animate-spin" />
+            <span className="hidden sm:inline">Sync</span>
+          </div>
+        )}
         <div className="flex flex-col">
           <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
             Meu Time
@@ -78,7 +88,7 @@ export function AuctionHeader({
             Orçamento
           </span>
           <span className="text-3xl font-mono font-bold text-emerald-400">
-            ${availableBudget.toLocaleString()}
+            {formatCurrencyMillions(availableBudget)}
           </span>
         </div>
 

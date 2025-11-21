@@ -3,6 +3,7 @@
 import { getTeamSession } from '@/app/actions/auth';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { formatToMillions } from '@/lib/format-millions';
 
 type BidResult = { success: true } | { success: false; error: string };
 
@@ -39,7 +40,7 @@ export async function placeBid(
 
       // Parse settings
       let timerSeconds = 43200; // Default 12 hours
-      let minIncrement = 1; // Default $1
+      let minIncrement = 1000000; // Default 1M
       let contractLogic = { enabled: false, rules: [] as any[] };
 
       try {
@@ -73,20 +74,22 @@ export async function placeBid(
 
       // C. Validate Bid Increment
       const currentHighBid = player.winningBid?.amount || 0;
-      
+
       // Increment logic: If minIncrement is < 1 (e.g. 0.15 for 15%), treat as percentage.
-      // If >= 1, treat as fixed amount.
-      let minBid = 1;
+      // If >= 1, treat as fixed amount (in millions).
+      let minBid = 1000000; // Default 1M
       if (currentHighBid > 0) {
         if (minIncrement < 1) {
+           // Percentage-based increment
            minBid = Math.ceil(currentHighBid * (1 + minIncrement));
         } else {
+           // Fixed amount increment (already in millions)
            minBid = currentHighBid + minIncrement;
         }
       }
 
       if (amount < minBid) {
-        throw new Error(`O lance mínimo é $${minBid} (Atual: $${currentHighBid})`);
+        throw new Error(`O lance mínimo é ${formatToMillions(minBid)} (Atual: ${formatToMillions(currentHighBid)})`);
       }
 
       // D. Validate Contract Logic
@@ -105,7 +108,7 @@ export async function placeBid(
                 throw new Error(isValid.message || 'Contrato inválido');
              }
            } else {
-             throw new Error(`Não foi encontrada regra de contrato para o valor $${amount}.`);
+             throw new Error(`Não foi encontrada regra de contrato para o valor ${formatToMillions(amount)}.`);
            }
         } else {
           // Validate against the matched rule
@@ -118,7 +121,7 @@ export async function placeBid(
 
       // Helper function to validate contract years based on rule type
       function validateContractRule(rule: any, years: number): { valid: boolean; message?: string } {
-        const rangeText = `$${rule.minBid} - ${rule.maxBid ? `$${rule.maxBid}` : '∞'}`;
+        const rangeText = `${formatToMillions(rule.minBid)} - ${rule.maxBid ? formatToMillions(rule.maxBid) : '∞'}`;
 
         switch (rule.durationType) {
           case 'any':
@@ -230,7 +233,7 @@ export async function placeBid(
       const availableBudget = team.budget - spentBudget - lockedBudget;
 
       if (amount > availableBudget) {
-        throw new Error(`Saldo insuficiente. Disponível: $${availableBudget} (Gasto: $${spentBudget}, Bloqueado: $${lockedBudget})`);
+        throw new Error(`Saldo insuficiente. Disponível: ${formatToMillions(availableBudget)} (Gasto: ${formatToMillions(spentBudget)}, Bloqueado: ${formatToMillions(lockedBudget)})`);
       }
 
       // F. Check Roster Spots

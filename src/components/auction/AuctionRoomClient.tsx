@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuctionStore } from '@/hooks/useAuctionStore';
+import { useSyncManager } from '@/hooks/useSyncManager';
 import { AuctionHeader } from './AuctionHeader';
 import { ActiveBidsGrid } from './ActiveBidsGrid';
 import { MarketTable } from './MarketTable';
@@ -17,7 +18,8 @@ interface AuctionRoomClientProps {
 }
 
 export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
-  const { data, isLoading, mutate } = useAuctionStore(roomId);
+  const { data, isLoading, mutate, isRealtimeUpdate } = useAuctionStore(roomId);
+  const { triggerSync } = useSyncManager(roomId);
   const [bidModalOpen, setBidModalOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<{ id: string; name: string; currentBid: number } | null>(null);
 
@@ -49,10 +51,11 @@ export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
 
   const handlePlaceBid = async (amount: number, contractYears: number) => {
     if (!selectedPlayer) return;
-    
+
     const result = await placeBid(roomId, selectedPlayer.id, amount, contractYears);
     if (result.success) {
-      mutate(); // Trigger immediate re-fetch
+      // Trigger global sync to update all components immediately
+      await triggerSync('bid_placed');
       setBidModalOpen(false);
     } else {
       throw new Error(result.error);
@@ -62,7 +65,8 @@ export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
   const handleRetractBid = async (itemId: string) => {
     const result = await retractBid(roomId, itemId);
     if (result.success) {
-      mutate();
+      // Trigger global sync to update all components immediately
+      await triggerSync('bid_retracted');
     } else {
       alert(result.error);
     }
@@ -77,6 +81,7 @@ export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
         roomId={roomId}
         roomStatus={data.room.status as RoomStatus}
         isOwner={isOwner}
+        isRealtimeUpdate={isRealtimeUpdate}
       />
 
       <main className="flex-1 flex flex-col pt-24 px-6 gap-6 overflow-hidden h-screen">

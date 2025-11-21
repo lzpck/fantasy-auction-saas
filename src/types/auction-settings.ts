@@ -34,22 +34,23 @@ export interface AuctionSettings {
 }
 
 // Configuracao "The Bad Place" para teste
+// Valores em escala de milhões (1M = 1000000)
 export const DEFAULT_SETTINGS: AuctionSettings = {
   budgetType: 'SALARY_CAP',
-  startingBudget: 1000,
+  startingBudget: 200000000, // 200M
   contractLogic: {
     enabled: true,
     rules: [
-      { minBid: 1, maxBid: 9, durationType: 'any', minYears: 1 },
-      { minBid: 10, maxBid: 49, durationType: 'min-2', minYears: 2 },
-      { minBid: 50, maxBid: 99, durationType: 'min-3', minYears: 3 },
-      { minBid: 100, durationType: 'min-4', minYears: 4 }
+      { minBid: 1000000, maxBid: 9000000, durationType: 'any', minYears: 1 },        // 1M - 9M
+      { minBid: 10000000, maxBid: 49000000, durationType: 'min-2', minYears: 2 },    // 10M - 49M
+      { minBid: 50000000, maxBid: 99000000, durationType: 'min-3', minYears: 3 },    // 50M - 99M
+      { minBid: 100000000, durationType: 'min-4', minYears: 4 }                      // 100M+
     ]
   },
   roster: {
     maxRosterSize: 20
   },
-  minIncrement: 1,
+  minIncrement: 1000000, // 1M
   timerSeconds: 30
 };
 

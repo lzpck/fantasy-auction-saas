@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { AuctionSettings, ContractRule, ContractDurationType, getContractDurationLabel } from '@/types/auction-settings';
 import { updateRoomSettings } from '@/app/actions/admin-room';
 import { Save, AlertCircle, Check, Trash2, Plus, Info } from 'lucide-react';
+import { parseFromMillions, toMillionsInput, formatToMillions } from '@/lib/format-millions';
 
 interface RoomSettingsFormProps {
   roomId: string;
@@ -71,13 +72,18 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-400">Budget Inicial ($)</label>
-          <input
-            type="number"
-            value={settings.startingBudget}
-            onChange={(e) => handleChange('startingBudget', Number(e.target.value))}
-            className="w-full bg-slate-900 border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-          />
+          <label className="text-sm font-medium text-slate-400">Budget Inicial (Milhões)</label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+            <input
+              type="number"
+              step="0.1"
+              value={toMillionsInput(settings.startingBudget)}
+              onChange={(e) => handleChange('startingBudget', parseFromMillions(Number(e.target.value)))}
+              className="w-full bg-slate-900 border border-white/10 rounded-md pl-7 pr-10 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-semibold">M</span>
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -108,7 +114,7 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
               onClick={() => {
                 // Convert to fixed if currently percentage
                 if (settings.minIncrement < 1) {
-                  handleChange('minIncrement', 5);
+                  handleChange('minIncrement', 5000000); // 5M default
                 }
               }}
               className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
@@ -138,7 +144,7 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
               <div className="flex items-start gap-2 bg-emerald-950/20 border border-emerald-900/30 rounded-lg p-2">
                 <Info className="w-3 h-3 text-emerald-400 mt-0.5 shrink-0" />
                 <p className="text-xs text-emerald-300">
-                  Exemplo: Lance de <strong>$100</strong> → Mínimo para cobrir: <strong>${Math.ceil(100 * (1 + settings.minIncrement))}</strong>
+                  Exemplo: Lance de <strong>100M</strong> → Mínimo para cobrir: <strong>{formatToMillions(Math.ceil(100000000 * (1 + settings.minIncrement)))}</strong>
                 </p>
               </div>
             </div>
@@ -148,17 +154,18 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
                 <span className="text-slate-400 font-bold text-lg">$</span>
                 <input
                   type="number"
-                  step="1"
-                  min="1"
-                  value={settings.minIncrement}
-                  onChange={(e) => handleChange('minIncrement', Number(e.target.value))}
-                  className="flex-1 bg-slate-900 border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  step="0.1"
+                  min="0.1"
+                  value={toMillionsInput(settings.minIncrement)}
+                  onChange={(e) => handleChange('minIncrement', parseFromMillions(Number(e.target.value)))}
+                  className="flex-1 bg-slate-900 border border-white/10 rounded-md pl-2 pr-8 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
                 />
+                <span className="text-slate-400 font-bold text-lg">M</span>
               </div>
               <div className="flex items-start gap-2 bg-emerald-950/20 border border-emerald-900/30 rounded-lg p-2">
                 <Info className="w-3 h-3 text-emerald-400 mt-0.5 shrink-0" />
                 <p className="text-xs text-emerald-300">
-                  Exemplo: Lance de <strong>$100</strong> → Mínimo para cobrir: <strong>${100 + settings.minIncrement}</strong>
+                  Exemplo: Lance de <strong>100M</strong> → Mínimo para cobrir: <strong>{formatToMillions(100000000 + settings.minIncrement)}</strong>
                 </p>
               </div>
             </div>
@@ -234,7 +241,7 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="text-slate-400 font-mono">
-                          ${rule.minBid} - {rule.maxBid ? `$${rule.maxBid}` : '∞'}
+                          {formatToMillions(rule.minBid)} - {rule.maxBid ? formatToMillions(rule.maxBid) : '∞'}
                         </span>
                         <span className="text-slate-600">→</span>
                         <span className="text-emerald-400 font-medium">
@@ -269,24 +276,34 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-400">Valor Mínimo ($)</label>
-                  <input
-                    type="number"
-                    id="newRuleMin"
-                    min="0"
-                    placeholder="Ex: 1"
-                    className="w-full bg-slate-950 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  />
+                  <label className="text-xs font-medium text-slate-400">Valor Mínimo (Milhões)</label>
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs">$</span>
+                    <input
+                      type="number"
+                      step="0.1"
+                      id="newRuleMin"
+                      min="0"
+                      placeholder="Ex: 1"
+                      className="w-full bg-slate-950 border border-white/10 rounded-md pl-5 pr-7 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-semibold">M</span>
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-400">Valor Máximo ($)</label>
-                  <input
-                    type="number"
-                    id="newRuleMax"
-                    min="0"
-                    placeholder="Deixe vazio para ∞"
-                    className="w-full bg-slate-950 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  />
+                  <label className="text-xs font-medium text-slate-400">Valor Máximo (Milhões)</label>
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs">$</span>
+                    <input
+                      type="number"
+                      step="0.1"
+                      id="newRuleMax"
+                      min="0"
+                      placeholder="Vazio = ∞"
+                      className="w-full bg-slate-950 border border-white/10 rounded-md pl-5 pr-7 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-semibold">M</span>
+                  </div>
                 </div>
               </div>
 
@@ -324,20 +341,24 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
                   const durationTypeSelect = document.getElementById('newRuleDurationType') as HTMLSelectElement;
                   const fixedYearsInput = document.getElementById('newRuleFixedYears') as HTMLInputElement;
 
-                  const min = parseInt(minInput.value);
-                  const max = maxInput.value ? parseInt(maxInput.value) : undefined;
+                  const minInMillions = parseFloat(minInput.value);
+                  const maxInMillions = maxInput.value ? parseFloat(maxInput.value) : undefined;
                   const durationType = durationTypeSelect.value as ContractDurationType;
 
                   // Validação
-                  if (isNaN(min) || min < 0) {
+                  if (isNaN(minInMillions) || minInMillions < 0) {
                     alert('Por favor, insira um valor mínimo válido.');
                     return;
                   }
 
-                  if (max !== undefined && max < min) {
+                  if (maxInMillions !== undefined && maxInMillions < minInMillions) {
                     alert('O valor máximo deve ser maior ou igual ao valor mínimo.');
                     return;
                   }
+
+                  // Convert from millions to actual values
+                  const min = parseFromMillions(minInMillions);
+                  const max = maxInMillions !== undefined ? parseFromMillions(maxInMillions) : undefined;
 
                   // Verificar sobreposição de faixas
                   const hasOverlap = settings.contractLogic.rules.some(existingRule => {

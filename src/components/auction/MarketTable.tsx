@@ -2,8 +2,10 @@
 
 import type { AuctionItem, Bid } from '@prisma/client';
 import { useState, useEffect } from 'react';
-import { Gavel, UserPlus, Search, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { Gavel, UserPlus, Search, ChevronLeft, ChevronRight, Clock, RefreshCw } from 'lucide-react';
 import useSWR from 'swr';
+import { formatCurrencyMillions } from '@/lib/format-millions';
+import { useSyncManager } from '@/hooks/useSyncManager';
 
 interface MarketTableProps {
   roomId: string;
@@ -57,12 +59,34 @@ export function MarketTable({ roomId, onBid, myTeamId }: MarketTableProps) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [selectedPosition, setSelectedPosition] = useState('ALL');
-  
-  const { data, isLoading } = useSWR(
+  const [isRealtimeUpdate, setIsRealtimeUpdate] = useState(false);
+
+  const { subscribe } = useSyncManager(roomId);
+
+  const { data, isLoading, mutate } = useSWR(
     `/api/room/${roomId}/items?page=${page}&limit=50&search=${search}&position=${selectedPosition}`,
     fetcher,
-    { keepPreviousData: true }
+    {
+      keepPreviousData: true,
+      refreshInterval: 3000, // Poll every 3 seconds
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 1000,
+    }
   );
+
+  // Subscribe to global sync events
+  useEffect(() => {
+    const unsubscribe = subscribe(() => {
+      setIsRealtimeUpdate(true);
+      mutate();
+
+      // Reset indicator after animation
+      setTimeout(() => setIsRealtimeUpdate(false), 1000);
+    });
+
+    return unsubscribe;
+  }, [subscribe, mutate]);
 
   const items: (AuctionItem & { winningBid: (Bid & { team: { name: string; ownerName: string | null } }) | null; expiresAt: Date | null })[] = data?.items || [];
   const totalPages = data?.totalPages || 1;
@@ -71,6 +95,14 @@ export function MarketTable({ roomId, onBid, myTeamId }: MarketTableProps) {
     <div className="flex flex-col gap-4 h-full">
       {/* Controls */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+        {/* Sync Indicator */}
+        {isRealtimeUpdate && (
+          <div className="absolute top-0 right-0 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-lg text-xs font-medium animate-pulse">
+            <RefreshCw size={12} className="animate-spin" />
+            Sincronizando...
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-2 max-w-full no-scrollbar">
           {POSITIONS.map((pos) => (
@@ -188,7 +220,7 @@ export function MarketTable({ roomId, onBid, myTeamId }: MarketTableProps) {
                     {item.contractYears ? `${item.contractYears} ano${item.contractYears > 1 ? 's' : ''}` : '-'}
                   </td>
                   <td className="p-3 text-right font-mono text-slate-300">
-                    {currentBid > 0 ? `$${currentBid}` : '-'}
+                    {currentBid > 0 ? formatCurrencyMillions(currentBid) : '-'}
                   </td>
                   <td className="p-3 text-right">
                     {item.winningBid ? (

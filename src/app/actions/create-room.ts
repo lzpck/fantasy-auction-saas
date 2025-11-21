@@ -84,23 +84,27 @@ async function fetchSleeperRosters(leagueId: string): Promise<SleeperRoster[]> {
 }
 
 function calculateBudget(roster: SleeperRoster, league: SleeperLeague): number {
+  // Sleeper API returns budget in standard units (e.g., 200 for FAAB)
+  // We convert to millions scale: 200 -> 200000000 (200M)
+  const MILLION = 1000000;
+
   if (roster.settings?.budget) {
-    return roster.settings.budget;
+    return roster.settings.budget * MILLION;
   }
 
   if (league.settings?.budget) {
-    return league.settings.budget;
+    return league.settings.budget * MILLION;
   }
 
   if (roster.settings?.wins !== undefined) {
-    return roster.settings.wins;
+    return roster.settings.wins * MILLION;
   }
 
   if (roster.settings?.fpts !== undefined) {
-    return Math.round(roster.settings.fpts);
+    return Math.round(roster.settings.fpts) * MILLION;
   }
 
-  return 1000;
+  return 200 * MILLION; // Default 200M
 }
 
 function calculateRosterSpots(

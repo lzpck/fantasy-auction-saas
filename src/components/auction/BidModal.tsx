@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Gavel, AlertCircle, Info } from 'lucide-react';
 import { AuctionSettings, ContractRule, validateContractYears, getContractDurationLabel } from '@/types/auction-settings';
+import { parseFromMillions, toMillionsInput, formatToMillions } from '@/lib/format-millions';
 
 interface BidModalProps {
   isOpen: boolean;
@@ -24,7 +25,8 @@ export function BidModal({
   settings,
   myBudget,
 }: BidModalProps) {
-  const [amount, setAmount] = useState<number>(0);
+  // Store amount in millions for input display
+  const [amountInMillions, setAmountInMillions] = useState<number>(0);
   const [years, setYears] = useState<number>(1);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,19 +34,22 @@ export function BidModal({
   const [yearsWarning, setYearsWarning] = useState<string | null>(null);
 
   // Calculate minimum bid based on settings
-  const minIncrement = settings.minIncrement || 1;
-  let minBid = 1;
+  const minIncrement = settings.minIncrement || 1000000; // Default 1M
+  let minBid = 1000000; // Default 1M
   if (currentBid > 0) {
     if (minIncrement < 1) {
+      // Percentage-based increment
       minBid = Math.ceil(currentBid * (1 + minIncrement));
     } else {
+      // Fixed amount increment (already in millions)
       minBid = currentBid + minIncrement;
     }
   }
 
   useEffect(() => {
     if (isOpen) {
-      setAmount(minBid);
+      // Convert minBid to millions for display
+      setAmountInMillions(toMillionsInput(minBid));
       setYears(1);
       setError(null);
       setYearsWarning(null);
@@ -65,8 +70,11 @@ export function BidModal({
       return;
     }
 
+    // Convert millions to actual value for rule comparison
+    const actualAmount = parseFromMillions(amountInMillions);
+
     const rule = rules.find((r) =>
-      amount >= r.minBid && (!r.maxBid || amount <= r.maxBid)
+      actualAmount >= r.minBid && (!r.maxBid || actualAmount <= r.maxBid)
     );
 
     if (rule) {
@@ -85,7 +93,7 @@ export function BidModal({
     } else {
       // If amount is higher than all rules, find the highest rule
       const maxRule = [...rules].sort((a, b) => b.minBid - a.minBid)[0];
-      if (maxRule && amount > maxRule.minBid) {
+      if (maxRule && actualAmount > maxRule.minBid) {
         setCurrentRule(maxRule);
         if (maxRule.durationType === 'fixed') {
           setYears(maxRule.years || 1);
@@ -96,7 +104,7 @@ export function BidModal({
         setCurrentRule(null);
       }
     }
-  }, [amount, settings.contractLogic]);
+  }, [amountInMillions, settings.contractLogic]);
 
   // Validate years when they change
   useEffect(() => {
@@ -117,19 +125,22 @@ export function BidModal({
     e.preventDefault();
     setError(null);
 
-    if (amount < minBid) {
-      setError(`O lance mínimo é $${minBid}`);
+    // Convert millions to actual value
+    const actualAmount = parseFromMillions(amountInMillions);
+
+    if (actualAmount < minBid) {
+      setError(`O lance mínimo é ${formatToMillions(minBid)}`);
       return;
     }
 
-    if (amount > myBudget) {
-      setError(`Saldo insuficiente (Disp: $${myBudget})`);
+    if (actualAmount > myBudget) {
+      setError(`Saldo insuficiente (Disp: ${formatToMillions(myBudget)})`);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await onBid(amount, years);
+      await onBid(actualAmount, years);
       onClose();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro ao dar lance';
@@ -176,21 +187,23 @@ export function BidModal({
                 
                 {/* Amount Input */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-400">Valor do Lance ($)</label>
+                  <label className="text-sm font-medium text-slate-400">Valor do Lance (em Milhões)</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">$</span>
                     <input
                       type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(Number(e.target.value))}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-8 pr-4 text-2xl font-bold text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                      min={minBid}
+                      step="0.1"
+                      value={amountInMillions}
+                      onChange={(e) => setAmountInMillions(Number(e.target.value))}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-8 pr-12 text-2xl font-bold text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                      min={toMillionsInput(minBid)}
                       autoFocus
                     />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xl">M</span>
                   </div>
                   <div className="flex justify-between text-xs text-slate-500">
-                    <span>Mínimo: ${minBid}</span>
-                    <span>Seu Saldo: ${myBudget}</span>
+                    <span>Mínimo: {formatToMillions(minBid)}</span>
+                    <span>Seu Saldo: {formatToMillions(myBudget)}</span>
                   </div>
                 </div>
 
