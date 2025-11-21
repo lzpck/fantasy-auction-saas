@@ -92,10 +92,13 @@ export default async function DashboardPage() {
                           <ExternalLink className="h-4 w-4" />
                           Entrar
                         </Link>
-                        <button className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5">
+                        <Link
+                          href={`/room/${room.id}/admin`}
+                          className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5"
+                        >
                           <Settings className="h-4 w-4" />
                           Configurar
-                        </button>
+                        </Link>
                       </div>
                     </div>
                   </div>

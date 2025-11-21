@@ -28,7 +28,7 @@ function getJwtSecret(): Uint8Array {
 }
 
 async function setSessionCookie(session: TeamSession) {
-  const token = await new SignJWT(session)
+  const token = await new SignJWT(session as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(SESSION_EXPIRATION)
