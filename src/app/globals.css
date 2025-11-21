@@ -3,6 +3,13 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Scrollbar colors - Light mode */
+  --scrollbar-track: #f8fafc;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+  --scrollbar-thumb-active: #64748b;
+  --scrollbar-border: #e2e8f0;
 }
 
 @theme inline {
@@ -16,6 +23,13 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+
+    /* Scrollbar colors - Dark mode */
+    --scrollbar-track: #0f172a;
+    --scrollbar-thumb: #334155;
+    --scrollbar-thumb-hover: #475569;
+    --scrollbar-thumb-active: #0ea5e9;
+    --scrollbar-border: #1e293b;
   }
 }
 
@@ -23,4 +37,138 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ============================================
+   Custom Scrollbar Styles
+   ============================================ */
+
+/* Firefox scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Webkit browsers (Chrome, Safari, Edge, Opera) */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+/* Track (background of scrollbar) */
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 8px;
+  border-left: 1px solid var(--scrollbar-border);
+}
+
+/* Thumb (draggable part) */
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 8px;
+  border: 2px solid var(--scrollbar-track);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Thumb hover state */
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  border-color: var(--scrollbar-thumb-hover);
+}
+
+/* Thumb active/dragging state */
+::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+  border-color: var(--scrollbar-thumb-active);
+}
+
+/* Corner where horizontal and vertical scrollbars meet */
+::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
+}
+
+/* Horizontal scrollbar specific styling */
+::-webkit-scrollbar:horizontal {
+  height: 10px;
+}
+
+/* ============================================
+   Scrollbar for specific elements with overlay effect
+   ============================================ */
+
+/* For overlay scrollbars in modals, dropdowns, etc. */
+.scrollbar-overlay::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-overlay::-webkit-scrollbar-track {
+  background: transparent;
+  border: none;
+}
+
+.scrollbar-overlay::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+.scrollbar-overlay::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
+/* ============================================
+   Thin scrollbar variant
+   ============================================ */
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  border-width: 1px;
+}
+
+/* ============================================
+   Hidden scrollbar (but still scrollable)
+   ============================================ */
+
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================
+   Accessibility: Ensure keyboard focus is visible
+   ============================================ */
+
+*:focus-visible {
+  outline: 2px solid var(--scrollbar-thumb-active);
+  outline-offset: 2px;
+}
+
+/* ============================================
+   Touch device optimization
+   ============================================ */
+
+@media (hover: none) and (pointer: coarse) {
+  /* Slightly larger scrollbars for touch devices */
+  ::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* More prominent thumb on touch devices */
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb-hover);
+    border-width: 3px;
+  }
 }
