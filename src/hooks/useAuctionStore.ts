@@ -1,10 +1,11 @@
 import useSWR from 'swr';
-import { AuctionItem, AuctionRoom, AuctionTeam, Bid } from '@prisma/client';
+import type { AuctionItem, AuctionRoom, AuctionTeam, Bid } from '@prisma/client';
 
 export interface AuctionSyncData {
   room: Pick<AuctionRoom, 'status' | 'settings'>;
   teams: Pick<AuctionTeam, 'id' | 'name' | 'budget' | 'rosterSpots'>[];
   activeItems: (AuctionItem & { winningBid: Bid | null; expiresAt: Date | null })[];
+  marketItems: (AuctionItem & { winningBid: Bid | null })[];
   me: AuctionTeam & {
     availableBudget: number;
     spotsRemaining: number;

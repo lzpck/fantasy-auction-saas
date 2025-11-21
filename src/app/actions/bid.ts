@@ -9,7 +9,8 @@ type BidResult = { success: true } | { success: false; error: string };
 export async function placeBid(
   roomId: string,
   playerId: string,
-  amount: number
+  amount: number,
+  contractYears: number
 ): Promise<BidResult> {
   try {
     // 1. Validate Session
@@ -36,13 +37,16 @@ export async function placeBid(
         throw new Error('O leilão não está aberto.');
       }
 
-      // Parse settings to get timer
+      // Parse settings
       let timerSeconds = 43200; // Default 12 hours
+      let minIncrement = 1; // Default $1
+      let contractLogic = { enabled: false, rules: [] as any[] };
+
       try {
         const settings = JSON.parse(room.settings);
-        if (settings.timerSeconds) {
-          timerSeconds = Number(settings.timerSeconds);
-        }
+        if (settings.timerSeconds) timerSeconds = Number(settings.timerSeconds);
+        if (settings.minIncrement) minIncrement = Number(settings.minIncrement);
+        if (settings.contractLogic) contractLogic = settings.contractLogic;
       } catch {
         // ignore json error, use default
       }
@@ -69,13 +73,51 @@ export async function placeBid(
 
       // C. Validate Bid Increment
       const currentHighBid = player.winningBid?.amount || 0;
-      const minBid = currentHighBid === 0 ? 1 : Math.ceil(currentHighBid * 1.15); // +15% rule
+      
+      // Increment logic: If minIncrement is < 1 (e.g. 0.15 for 15%), treat as percentage.
+      // If >= 1, treat as fixed amount.
+      let minBid = 1;
+      if (currentHighBid > 0) {
+        if (minIncrement < 1) {
+           minBid = Math.ceil(currentHighBid * (1 + minIncrement));
+        } else {
+           minBid = currentHighBid + minIncrement;
+        }
+      }
 
       if (amount < minBid) {
         throw new Error(`O lance mínimo é $${minBid} (Atual: $${currentHighBid})`);
       }
 
-      // D. Fetch Team & Calculate Budget
+      // D. Validate Contract Logic
+      if (contractLogic.enabled && contractLogic.rules.length > 0) {
+        const rule = contractLogic.rules.find((r: any) => 
+          amount >= r.minBid && (!r.maxBid || amount <= r.maxBid)
+        );
+
+        if (!rule) {
+           // Fallback: if no rule matches (e.g. bid too high for defined rules), usually take the highest year or throw error.
+           // Let's assume the last rule covers "infinity" if maxBid is missing, but if user defined gaps, we might have an issue.
+           // For now, if no rule matches, we accept it (or should we reject?). 
+           // Let's reject to be safe if logic is enabled.
+           // Actually, let's look for the "highest" rule if amount exceeds all.
+           const maxRule = contractLogic.rules.sort((a: any, b: any) => b.minBid - a.minBid)[0];
+           if (amount > maxRule.minBid) {
+             // Use the highest rule's years
+             if (contractYears !== maxRule.years) {
+                throw new Error(`Para lances acima de $${maxRule.minBid}, o contrato deve ser de ${maxRule.years} anos.`);
+             }
+           } else {
+             throw new Error(`Não foi encontrada regra de contrato para o valor $${amount}.`);
+           }
+        } else {
+          if (contractYears !== rule.years) {
+            throw new Error(`Para lances entre $${rule.minBid} e $${rule.maxBid || '∞'}, o contrato deve ser de ${rule.years} anos.`);
+          }
+        }
+      }
+
+      // E. Fetch Team & Calculate Budget
       const team = await tx.auctionTeam.findUnique({
         where: { id: teamId },
         include: {
@@ -135,17 +177,8 @@ export async function placeBid(
         throw new Error(`Saldo insuficiente. Disponível: $${availableBudget} (Gasto: $${spentBudget}, Bloqueado: $${lockedBudget})`);
       }
 
-      // E. Check Roster Spots
+      // F. Check Roster Spots
       const isAlreadyWinning = player.winningTeamId === teamId;
-      
-      // Spots Used = Sold Items + Active Winning (Other players) + (1 if we win this one)
-      // If we are already winning this one, we don't consume an EXTRA spot compared to current state, 
-      // but we still need to validate against total spots.
-      
-      // Actually, simpler logic:
-      // Count items I have WON (SOLD) + items I am WINNING (NOMINATED).
-      // If I am NOT winning the current player, adding this bid will increase my count by 1.
-      // If I AM winning the current player, my count stays the same.
       
       const newItemsCount = wonItems.length + activeWinningItems.length + 1;
       
@@ -153,12 +186,13 @@ export async function placeBid(
          throw new Error('Sem vagas no elenco.');
       }
 
-      // F. Execute Bid
+      // G. Execute Bid
       const newBid = await tx.bid.create({
         data: {
           auctionItemId: playerId,
           teamId: teamId,
           amount: amount,
+          contractYears: contractYears,
           status: 'VALID',
         },
       });
@@ -169,6 +203,7 @@ export async function placeBid(
           status: 'NOMINATED',
           winningBidId: newBid.id,
           winningTeamId: teamId,
+          contractYears: contractYears,
           expiresAt: expiresAt,
         },
       });
@@ -179,7 +214,7 @@ export async function placeBid(
           data: {
             teamId: player.winningTeamId,
             type: 'OUTBID',
-            message: `Você foi superado por ${team.name} em ${player.name} ($${amount})`,
+            message: `Você foi superado por ${team.name} em ${player.name} ($${amount} - ${contractYears} anos)`,
             relatedItemId: playerId,
           },
         });
@@ -191,7 +226,6 @@ export async function placeBid(
 
   } catch (error: any) {
     console.error('Erro ao dar lance:', error);
-    // Return the specific error message if it's one of ours, otherwise generic
     const errorMessage = error?.message || 'Erro interno ao processar lance.';
     return { success: false, error: errorMessage };
   }

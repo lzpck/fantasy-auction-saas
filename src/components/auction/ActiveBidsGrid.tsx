@@ -1,15 +1,17 @@
-import { AuctionItem, Bid } from '@prisma/client';
+'use client';
+
+import type { AuctionItem, Bid } from '@prisma/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, AlertCircle, Clock, Undo2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { retractBid } from '@/app/actions/admin-bid';
+
 
 interface ActiveBidsGridProps {
   myTeamId: string;
   activeBids: (AuctionItem & { winningBid: Bid | null; winningTeamName?: string; expiresAt: Date | null })[];
   onBid: (playerId: string, amount: number) => void;
+  onRetract?: (itemId: string) => void;
   isOwner?: boolean;
-  roomId: string;
 }
 
 function Countdown({ expiresAt }: { expiresAt: Date | null }) {
@@ -28,11 +30,12 @@ function Countdown({ expiresAt }: { expiresAt: Date | null }) {
         return;
       }
 
-      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const hours = Math.floor(distance / (1000 * 60 * 60));
       const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-      setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+      const fmt = (n: number) => n.toString().padStart(2, '0');
+      setTimeLeft(`${fmt(hours)}:${fmt(minutes)}:${fmt(seconds)}`);
     }, 1000);
 
     return () => clearInterval(interval);
@@ -52,8 +55,8 @@ export function ActiveBidsGrid({
   myTeamId,
   activeBids,
   onBid,
+  onRetract,
   isOwner,
-  roomId,
 }: ActiveBidsGridProps) {
   if (activeBids.length === 0) {
     return null;
@@ -61,14 +64,33 @@ export function ActiveBidsGrid({
 
   const handleRetract = async (itemId: string) => {
     if (!confirm('Tem certeza que deseja retirar o último lance deste item?')) return;
-    await retractBid(roomId, itemId);
+    if (onRetract) {
+      onRetract(itemId);
+    }
   };
 
   return (
     <div className="w-full overflow-x-auto pb-4 pt-2">
       <div className="flex gap-4 px-6 min-w-max">
         <AnimatePresence>
-          {activeBids.map((item) => {
+          {[...activeBids]
+            .sort((a, b) => {
+              // Sort by time remaining (shortest first)
+              const timeA = a.expiresAt ? new Date(a.expiresAt).getTime() : Number.MAX_SAFE_INTEGER;
+              const timeB = b.expiresAt ? new Date(b.expiresAt).getTime() : Number.MAX_SAFE_INTEGER;
+              if (timeA !== timeB) return timeA - timeB;
+
+              // Tie-breaker 1: Highest bid
+              const bidA = a.winningBid?.amount || 0;
+              const bidB = b.winningBid?.amount || 0;
+              if (bidA !== bidB) return bidB - bidA;
+
+              // Tie-breaker 2: Oldest bid (using timestamp if available, else 0)
+              const dateA = a.winningBid?.timestamp ? new Date(a.winningBid.timestamp).getTime() : 0;
+              const dateB = b.winningBid?.timestamp ? new Date(b.winningBid.timestamp).getTime() : 0;
+              return dateA - dateB;
+            })
+            .map((item) => {
             const isWinning = item.winningTeamId === myTeamId;
             const currentBid = item.winningBid?.amount || 0;
             const nextBid = Math.ceil(currentBid * 1.15);
@@ -134,23 +156,30 @@ export function ActiveBidsGrid({
                     <Countdown expiresAt={item.expiresAt ? new Date(item.expiresAt) : null} />
                   </div>
                   
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="text-xs text-slate-400">Lance Atual</span>
-                      <span className="text-xs font-semibold text-slate-300">
-                        {isWinning ? 'Você' : item.winningTeamName || 'Desconhecido'}
-                      </span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-slate-400">Vencendo</span>
+                        <span className="text-xs font-semibold text-slate-300 truncate max-w-[120px]" title={isWinning ? 'Você' : item.winningTeamName || 'Desconhecido'}>
+                          {isWinning ? 'Você' : item.winningTeamName || '—'}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-mono text-xl font-bold text-slate-200 block">
+                          ${currentBid}
+                        </span>
+                        {item.contractYears && (
+                          <span className="text-xs text-slate-400 font-mono">
+                            {item.contractYears} ano{item.contractYears > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <span className="font-mono text-xl font-bold text-slate-200">
-                      ${currentBid}
-                    </span>
-                  </div>
                 </div>
 
                 {/* Action Button */}
                 {!isWinning && (
                   <button
-                    onClick={() => onBid(item.id, nextBid)}
+                    onClick={() => onBid(item.id, currentBid)}
                     className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg shadow-lg shadow-rose-900/50 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <AlertCircle size={16} />

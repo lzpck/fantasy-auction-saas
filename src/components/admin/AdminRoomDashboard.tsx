@@ -77,6 +77,18 @@ export function AdminRoomDashboard({ roomId, roomName, settings, teams, players,
                 Gerenciamento detalhado da sala (God Mode)
               </p>
             </div>
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/room/${roomId}`;
+                navigator.clipboard.writeText(url);
+                // Simple alert for now, could be a toast
+                alert('Link copiado para a área de transferência!');
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg border border-white/10 transition-colors"
+            >
+              <Users className="w-4 h-4" />
+              Compartilhar Sala
+            </button>
           </div>
 
           {/* Tabs Navigation */}

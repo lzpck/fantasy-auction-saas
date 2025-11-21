@@ -16,7 +16,7 @@ export async function GET(
   const teamId = session.teamId;
 
   try {
-    const [room, teams, activeItems, myTeam] = await Promise.all([
+    const [room, teams, activeItems, marketItems, myTeam] = await Promise.all([
       prisma.auctionRoom.findUnique({
         where: { id },
         select: { status: true, settings: true },
@@ -29,6 +29,15 @@ export async function GET(
         where: { 
           auctionRoomId: id,
           status: 'NOMINATED'
+        },
+        include: {
+          winningBid: true,
+        },
+      }),
+      prisma.auctionItem.findMany({
+        where: { 
+          auctionRoomId: id,
+          status: 'PENDING'
         },
         include: {
           winningBid: true,
@@ -85,6 +94,7 @@ export async function GET(
       room,
       teams,
       activeItems,
+      marketItems,
       me: {
         ...myTeam,
         availableBudget,

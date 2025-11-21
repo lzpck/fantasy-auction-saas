@@ -118,6 +118,7 @@ model Bid {
   teamId        String
   
   amount        Float
+  contractYears Int?      // Anos de contrato propostos neste lance
   timestamp     DateTime  @default(now())
   status        BidStatus @default(VALID)
 

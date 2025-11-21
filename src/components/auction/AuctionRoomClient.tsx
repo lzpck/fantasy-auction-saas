@@ -1,11 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuctionStore } from '@/hooks/useAuctionStore';
 import { AuctionHeader } from './AuctionHeader';
 import { ActiveBidsGrid } from './ActiveBidsGrid';
 import { MarketTable } from './MarketTable';
 import { placeBid } from '@/app/actions/bid';
-import { RoomStatus } from '@prisma/client';
+import { retractBid } from '@/app/actions/admin-bid';
+import type { RoomStatus } from '@prisma/client';
+import { BidModal } from './BidModal';
+import { AuctionSettings } from '@/types/auction-settings';
 
 interface AuctionRoomClientProps {
   roomId: string;
@@ -14,6 +18,8 @@ interface AuctionRoomClientProps {
 
 export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
   const { data, isLoading, mutate } = useAuctionStore(roomId);
+  const [bidModalOpen, setBidModalOpen] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState<{ id: string; name: string; currentBid: number } | null>(null);
 
   if (isLoading || !data) {
     return (
@@ -25,10 +31,38 @@ export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
 
   const { me, activeItems } = data;
 
-  const handleBid = async (playerId: string, amount: number) => {
-    const result = await placeBid(roomId, playerId, amount);
+  // Parse settings safely
+  let settings: AuctionSettings = {} as AuctionSettings;
+  try {
+      settings = JSON.parse(data.room.settings);
+  } catch (e) {
+      console.error("Failed to parse settings", e);
+  }
+
+  const handleOpenBidModal = (playerId: string, currentBid: number) => {
+    const player = activeItems.find(i => i.id === playerId) || data.marketItems.find(i => i.id === playerId);
+    if (player) {
+        setSelectedPlayer({ id: playerId, name: player.name, currentBid });
+        setBidModalOpen(true);
+    }
+  };
+
+  const handlePlaceBid = async (amount: number, contractYears: number) => {
+    if (!selectedPlayer) return;
+    
+    const result = await placeBid(roomId, selectedPlayer.id, amount, contractYears);
     if (result.success) {
       mutate(); // Trigger immediate re-fetch
+      setBidModalOpen(false);
+    } else {
+      throw new Error(result.error);
+    }
+  };
+
+  const handleRetractBid = async (itemId: string) => {
+    const result = await retractBid(roomId, itemId);
+    if (result.success) {
+      mutate();
     } else {
       alert(result.error);
     }
@@ -55,9 +89,9 @@ export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
           <ActiveBidsGrid
             myTeamId={me.id}
             activeBids={activeItems.filter((i) => me.activeItemIds.includes(i.id))}
-            onBid={handleBid}
+            onBid={(id, currentBid) => handleOpenBidModal(id, currentBid)}
+            onRetract={handleRetractBid}
             isOwner={isOwner}
-            roomId={roomId}
           />
         </section>
 
@@ -68,11 +102,26 @@ export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
           </h2>
           <MarketTable
             roomId={roomId}
-            onBid={handleBid}
+            onBid={(id) => {
+                const item = data.marketItems.find(i => i.id === id);
+                handleOpenBidModal(id, item?.winningBid?.amount || 0);
+            }}
             myTeamId={me.id}
           />
         </section>
       </main>
+
+      {selectedPlayer && (
+        <BidModal
+          isOpen={bidModalOpen}
+          onClose={() => setBidModalOpen(false)}
+          onBid={handlePlaceBid}
+          playerName={selectedPlayer.name}
+          currentBid={selectedPlayer.currentBid}
+          settings={settings}
+          myBudget={me.availableBudget}
+        />
+      )}
     </div>
   );
 }

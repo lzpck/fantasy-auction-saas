@@ -1,4 +1,6 @@
-import { AuctionItem, Bid } from '@prisma/client';
+'use client';
+
+import type { AuctionItem, Bid } from '@prisma/client';
 import { useState, useEffect } from 'react';
 import { Gavel, UserPlus, Search, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import useSWR from 'swr';
@@ -116,6 +118,7 @@ export function MarketTable({ roomId, onBid, myTeamId }: MarketTableProps) {
               <th className="p-3 font-medium">Nome</th>
               <th className="p-3 font-medium">Time</th>
               <th className="p-3 font-medium">Status</th>
+              <th className="p-3 font-medium text-right">Contrato</th>
               <th className="p-3 font-medium text-right">Maior Lance</th>
               <th className="p-3 font-medium text-right">Vencendo</th>
               <th className="p-3 font-medium text-right">Tempo</th>
@@ -129,8 +132,8 @@ export function MarketTable({ roomId, onBid, myTeamId }: MarketTableProps) {
               const isNominated = item.status === 'NOMINATED';
               const isSold = item.status === 'SOLD';
               
-              // Calculate next bid
-              const nextBid = currentBid === 0 ? 1 : Math.ceil(currentBid * 1.15);
+              // Calculate next bid (unused here, handled in modal)
+              // const nextBid = currentBid === 0 ? 1 : Math.ceil(currentBid * 1.15);
 
               return (
                 <tr
@@ -182,6 +185,9 @@ export function MarketTable({ roomId, onBid, myTeamId }: MarketTableProps) {
                     </span>
                   </td>
                   <td className="p-3 text-right font-mono text-slate-300">
+                    {item.contractYears ? `${item.contractYears} ano${item.contractYears > 1 ? 's' : ''}` : '-'}
+                  </td>
+                  <td className="p-3 text-right font-mono text-slate-300">
                     {currentBid > 0 ? `$${currentBid}` : '-'}
                   </td>
                   <td className="p-3 text-right text-xs text-slate-400">
@@ -193,7 +199,7 @@ export function MarketTable({ roomId, onBid, myTeamId }: MarketTableProps) {
                   <td className="p-3 text-right">
                     {!isSold && (
                       <button
-                        onClick={() => onBid(item.id, nextBid)}
+                        onClick={() => onBid(item.id, currentBid)}
                         disabled={isWinning}
                         className={`
                           px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-2 ml-auto
@@ -211,12 +217,12 @@ export function MarketTable({ roomId, onBid, myTeamId }: MarketTableProps) {
                         ) : isNominated ? (
                           <>
                             <Gavel size={14} />
-                            Entrar (${nextBid})
+                            Entrar
                           </>
                         ) : (
                           <>
                             <UserPlus size={14} />
-                            Dar Lance ($1)
+                            Dar Lance
                           </>
                         )}
                       </button>
@@ -230,7 +236,7 @@ export function MarketTable({ roomId, onBid, myTeamId }: MarketTableProps) {
             })}
             {items.length === 0 && !isLoading && (
                 <tr>
-                    <td colSpan={8} className="p-8 text-center text-slate-500">
+                    <td colSpan={9} className="p-8 text-center text-slate-500">
                         Nenhum jogador encontrado.
                     </td>
                 </tr>

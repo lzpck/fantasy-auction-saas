@@ -19,7 +19,7 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
     setSettings(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleNestedChange = (parent: keyof AuctionSettings, field: string, value: string | number | boolean) => {
+  const handleNestedChange = (parent: keyof AuctionSettings, field: string, value: any) => {
     setSettings(prev => {
       const parentValue = prev[parent];
       if (typeof parentValue === 'object' && parentValue !== null) {
@@ -118,6 +118,82 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
              />
              <label htmlFor="contractLogic" className="text-sm text-slate-300">Habilitar Lógica de Contratos</label>
            </div>
+
+           {settings.contractLogic.enabled && (
+             <div className="mt-4 space-y-4 border-t border-white/10 pt-4">
+               <h4 className="text-sm font-medium text-slate-300">Regras de Contrato</h4>
+               <div className="space-y-2">
+                 {settings.contractLogic.rules.map((rule, index) => (
+                   <div key={index} className="flex items-center gap-2 text-sm text-slate-400 bg-slate-950/50 p-2 rounded border border-white/5">
+                     <span>${rule.minBid} - {rule.maxBid ? `$${rule.maxBid}` : '∞'}</span>
+                     <span className="text-slate-600">→</span>
+                     <span className="text-slate-200">{rule.years} ano{rule.years > 1 ? 's' : ''}</span>
+                     <button
+                       onClick={() => {
+                         const newRules = settings.contractLogic.rules.filter((_, i) => i !== index);
+                         handleNestedChange('contractLogic', 'rules', newRules);
+                       }}
+                       className="ml-auto text-red-400 hover:text-red-300"
+                     >
+                       Remover
+                     </button>
+                   </div>
+                 ))}
+               </div>
+               
+               <div className="flex gap-2 items-end bg-slate-900 p-3 rounded border border-white/10">
+                 <div className="space-y-1">
+                   <label className="text-xs text-slate-500">Min ($)</label>
+                   <input
+                     type="number"
+                     id="newRuleMin"
+                     className="w-20 bg-slate-950 border border-white/10 rounded px-2 py-1 text-sm text-white"
+                   />
+                 </div>
+                 <div className="space-y-1">
+                   <label className="text-xs text-slate-500">Max ($)</label>
+                   <input
+                     type="number"
+                     id="newRuleMax"
+                     placeholder="∞"
+                     className="w-20 bg-slate-950 border border-white/10 rounded px-2 py-1 text-sm text-white"
+                   />
+                 </div>
+                 <div className="space-y-1">
+                   <label className="text-xs text-slate-500">Anos</label>
+                   <input
+                     type="number"
+                     id="newRuleYears"
+                     className="w-16 bg-slate-950 border border-white/10 rounded px-2 py-1 text-sm text-white"
+                   />
+                 </div>
+                 <button
+                   onClick={() => {
+                     const minInput = document.getElementById('newRuleMin') as HTMLInputElement;
+                     const maxInput = document.getElementById('newRuleMax') as HTMLInputElement;
+                     const yearsInput = document.getElementById('newRuleYears') as HTMLInputElement;
+                     
+                     const min = parseInt(minInput.value);
+                     const max = maxInput.value ? parseInt(maxInput.value) : null;
+                     const years = parseInt(yearsInput.value);
+                     
+                     if (!isNaN(min) && !isNaN(years)) {
+                       const newRule = { minBid: min, maxBid: max, years };
+                       const newRules = [...settings.contractLogic.rules, newRule].sort((a, b) => a.minBid - b.minBid);
+                       handleNestedChange('contractLogic', 'rules', newRules as any);
+                       
+                       minInput.value = '';
+                       maxInput.value = '';
+                       yearsInput.value = '';
+                     }
+                   }}
+                   className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded h-[30px]"
+                 >
+                   Adicionar
+                 </button>
+               </div>
+             </div>
+           )}
            
            <button
              onClick={handleSave}

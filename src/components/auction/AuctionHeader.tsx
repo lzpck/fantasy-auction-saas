@@ -4,7 +4,7 @@ import { LogOut, Play, Pause } from 'lucide-react';
 import Link from 'next/link';
 import { toggleRoomStatus } from '@/app/actions/room-actions';
 import { useTransition } from 'react';
-import { RoomStatus } from '@prisma/client';
+import type { RoomStatus } from '@prisma/client';
 
 interface AuctionHeaderProps {
   teamName: string;
