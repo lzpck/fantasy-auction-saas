@@ -5,6 +5,7 @@ import { useAuctionStore } from '@/hooks/useAuctionStore';
 import { useSyncManager } from '@/hooks/useSyncManager';
 import { AuctionHeader } from './AuctionHeader';
 import { ActiveBidsGrid } from './ActiveBidsGrid';
+import { AdminActiveItemsGrid } from './AdminActiveItemsGrid';
 import { MarketTable } from './MarketTable';
 import { placeBid } from '@/app/actions/bid';
 import { retractBid } from '@/app/actions/admin-bid';
@@ -85,11 +86,21 @@ export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
       />
 
       <main className="flex-1 flex flex-col pt-24 px-6 gap-6 overflow-hidden h-screen">
+        {/* Admin Section - All Active Items */}
+        {isOwner && (
+          <section className="flex-none">
+            <AdminActiveItemsGrid
+              roomId={roomId}
+              onRetract={handleRetractBid}
+            />
+          </section>
+        )}
+
         {/* Active Battles Section */}
         <section className="flex-none">
           <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Negociações Ativas
+            {isOwner ? 'Minhas Negociações' : 'Negociações Ativas'}
           </h2>
           <ActiveBidsGrid
             myTeamId={me.id}

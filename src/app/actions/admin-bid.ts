@@ -87,16 +87,16 @@ export async function retractBid(
         });
 
       } else {
-        // No previous bid, reset item to NOMINATED (or PENDING? usually NOMINATED if it was already up)
-        // If it was just nominated and the first bid is retracted, maybe it stays nominated but with no bids?
-        // Let's keep it NOMINATED but with no winner.
+        // No previous bid, reset item to PENDING
+        // When there are no more bids, the item should return to the market as available
         await tx.auctionItem.update({
           where: { id: itemId },
           data: {
             winningBidId: null,
             winningTeamId: null,
             expiresAt: null,
-            status: 'NOMINATED',
+            contractYears: null,
+            status: 'PENDING',
           },
         });
       }

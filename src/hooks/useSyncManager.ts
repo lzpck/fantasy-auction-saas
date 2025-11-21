@@ -79,7 +79,7 @@ const syncManager = new SyncManager();
  * Hook for components to participate in the global sync system
  */
 export function useSyncManager(roomId: string) {
-  const syncTimeoutRef = useRef<NodeJS.Timeout>();
+  const syncTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const triggerSync = useCallback(async (event: SyncEvent = 'room_updated') => {
     // Clear any pending sync
