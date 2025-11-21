@@ -42,12 +42,14 @@ export async function placeBid(
       let timerSeconds = 43200; // Default 12 hours
       let minIncrement = 1000000; // Default 1M
       let contractLogic = { enabled: false, rules: [] as any[] };
+      let maxContractYears = 4; // Default max contract years
 
       try {
         const settings = JSON.parse(room.settings);
         if (settings.timerSeconds) timerSeconds = Number(settings.timerSeconds);
         if (settings.minIncrement) minIncrement = Number(settings.minIncrement);
         if (settings.contractLogic) contractLogic = settings.contractLogic;
+        if (settings.maxContractYears) maxContractYears = Number(settings.maxContractYears);
       } catch {
         // ignore json error, use default
       }
@@ -121,6 +123,14 @@ export async function placeBid(
 
       // Helper function to validate contract years based on rule type
       function validateContractRule(rule: any, years: number): { valid: boolean; message?: string } {
+        // Validação do limite máximo de anos
+        if (years > maxContractYears) {
+          return {
+            valid: false,
+            message: `O contrato não pode exceder ${maxContractYears} ano${maxContractYears !== 1 ? 's' : ''} (você escolheu ${years} ano${years !== 1 ? 's' : ''}).`
+          };
+        }
+
         const rangeText = `${formatToMillions(rule.minBid)} - ${rule.maxBid ? formatToMillions(rule.maxBid) : '∞'}`;
 
         switch (rule.durationType) {

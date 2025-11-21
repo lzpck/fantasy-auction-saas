@@ -113,13 +113,13 @@ export function BidModal({
       return;
     }
 
-    const validation = validateContractYears(currentRule, years);
+    const validation = validateContractYears(currentRule, years, settings.maxContractYears || 4);
     if (!validation.valid && validation.message) {
       setYearsWarning(validation.message);
     } else {
       setYearsWarning(null);
     }
-  }, [years, currentRule, settings.contractLogic]);
+  }, [years, currentRule, settings.contractLogic, settings.maxContractYears]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

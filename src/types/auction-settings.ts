@@ -19,15 +19,18 @@ export interface RosterSettings {
 export interface AuctionSettings {
   budgetType: BudgetType;
   startingBudget: number;
-  
+
   // Logica de contratos dinamicos
   contractLogic: {
     enabled: boolean;
     rules: ContractRule[];
   };
-  
+
+  // Duração máxima de contratos que podem ser estabelecidos
+  maxContractYears: number;
+
   roster: RosterSettings;
-  
+
   // Regras de lance
   minIncrement: number; // ex: 1 ($) ou porcentagem
   timerSeconds: number; // tempo do relogio de leilao
@@ -47,6 +50,7 @@ export const DEFAULT_SETTINGS: AuctionSettings = {
       { minBid: 100000000, durationType: 'min-4', minYears: 4 }                      // 100M+
     ]
   },
+  maxContractYears: 4, // Duração máxima padrão para contratos
   roster: {
     maxRosterSize: 20
   },
@@ -73,7 +77,16 @@ export function getContractDurationLabel(durationType: ContractDurationType, yea
 }
 
 // Função auxiliar para validar anos de contrato com base na regra
-export function validateContractYears(rule: ContractRule, proposedYears: number): { valid: boolean; message?: string } {
+export function validateContractYears(rule: ContractRule, proposedYears: number, maxContractYears?: number): { valid: boolean; message?: string } {
+  // Validação do limite máximo de anos (se definido)
+  if (maxContractYears && proposedYears > maxContractYears) {
+    return {
+      valid: false,
+      message: `O contrato não pode exceder ${maxContractYears} ano${maxContractYears !== 1 ? 's' : ''}`
+    };
+  }
+
+  // Validação baseada no tipo de regra
   switch (rule.durationType) {
     case 'any':
       return { valid: proposedYears >= 1 };

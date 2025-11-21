@@ -201,6 +201,24 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
             className="w-full bg-slate-900 border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
           />
         </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
+            Duração Máxima de Contratos (anos)
+            <Info className="w-3 h-3 text-slate-500" />
+          </label>
+          <input
+            type="number"
+            min="1"
+            max="10"
+            value={settings.maxContractYears}
+            onChange={(e) => handleChange('maxContractYears', Number(e.target.value))}
+            className="w-full bg-slate-900 border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+          />
+          <p className="text-xs text-slate-500">
+            Limite máximo de anos que podem ser estabelecidos em contratos
+          </p>
+        </div>
       </div>
 
       <div className="pt-4 border-t border-white/10 space-y-4">
