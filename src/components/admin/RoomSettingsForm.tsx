@@ -80,14 +80,89 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
           />
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-400">Incremento Mínimo ($)</label>
-          <input
-            type="number"
-            value={settings.minIncrement}
-            onChange={(e) => handleChange('minIncrement', Number(e.target.value))}
-            className="w-full bg-slate-900 border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-          />
+        <div className="space-y-3">
+          <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
+            Incremento Mínimo
+            <Info className="w-3 h-3 text-slate-500" />
+          </label>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                // Convert to percentage if currently fixed
+                if (settings.minIncrement >= 1) {
+                  handleChange('minIncrement', 0.15);
+                }
+              }}
+              className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                settings.minIncrement < 1
+                  ? 'bg-sky-600 text-white border-2 border-sky-500'
+                  : 'bg-slate-800 text-slate-400 border-2 border-slate-700 hover:border-slate-600'
+              }`}
+            >
+              Porcentagem (%)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Convert to fixed if currently percentage
+                if (settings.minIncrement < 1) {
+                  handleChange('minIncrement', 5);
+                }
+              }}
+              className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                settings.minIncrement >= 1
+                  ? 'bg-sky-600 text-white border-2 border-sky-500'
+                  : 'bg-slate-800 text-slate-400 border-2 border-slate-700 hover:border-slate-600'
+              }`}
+            >
+              Valor Fixo ($)
+            </button>
+          </div>
+
+          {settings.minIncrement < 1 ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  max="100"
+                  value={Math.round(settings.minIncrement * 100)}
+                  onChange={(e) => handleChange('minIncrement', Number(e.target.value) / 100)}
+                  className="flex-1 bg-slate-900 border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+                <span className="text-slate-400 font-bold text-lg">%</span>
+              </div>
+              <div className="flex items-start gap-2 bg-emerald-950/20 border border-emerald-900/30 rounded-lg p-2">
+                <Info className="w-3 h-3 text-emerald-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-emerald-300">
+                  Exemplo: Lance de <strong>$100</strong> → Mínimo para cobrir: <strong>${Math.ceil(100 * (1 + settings.minIncrement))}</strong>
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 font-bold text-lg">$</span>
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={settings.minIncrement}
+                  onChange={(e) => handleChange('minIncrement', Number(e.target.value))}
+                  className="flex-1 bg-slate-900 border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+              </div>
+              <div className="flex items-start gap-2 bg-emerald-950/20 border border-emerald-900/30 rounded-lg p-2">
+                <Info className="w-3 h-3 text-emerald-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-emerald-300">
+                  Exemplo: Lance de <strong>$100</strong> → Mínimo para cobrir: <strong>${100 + settings.minIncrement}</strong>
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">

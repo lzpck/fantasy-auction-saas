@@ -4,6 +4,7 @@ import type { AuctionItem, Bid } from '@prisma/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, AlertCircle, Clock, Undo2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { AuctionSettings } from '@/types/auction-settings';
 
 
 interface ActiveBidsGridProps {
@@ -12,6 +13,7 @@ interface ActiveBidsGridProps {
   onBid: (playerId: string, amount: number) => void;
   onRetract?: (itemId: string) => void;
   isOwner?: boolean;
+  settings: AuctionSettings;
 }
 
 function Countdown({ expiresAt }: { expiresAt: Date | null }) {
@@ -57,6 +59,7 @@ export function ActiveBidsGrid({
   onBid,
   onRetract,
   isOwner,
+  settings,
 }: ActiveBidsGridProps) {
   if (activeBids.length === 0) {
     return null;
@@ -93,7 +96,19 @@ export function ActiveBidsGrid({
             .map((item) => {
             const isWinning = item.winningTeamId === myTeamId;
             const currentBid = item.winningBid?.amount || 0;
-            const nextBid = Math.ceil(currentBid * 1.15);
+
+            // Calculate next bid based on room settings
+            const minIncrement = settings.minIncrement || 1;
+            let nextBid = 1;
+            if (currentBid > 0) {
+              if (minIncrement < 1) {
+                // Percentage-based (e.g., 0.15 = 15%)
+                nextBid = Math.ceil(currentBid * (1 + minIncrement));
+              } else {
+                // Fixed amount (e.g., 5 = $5)
+                nextBid = currentBid + minIncrement;
+              }
+            }
 
             return (
               <motion.div

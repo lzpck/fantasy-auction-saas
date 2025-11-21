@@ -92,6 +92,7 @@ export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
             onBid={(id, currentBid) => handleOpenBidModal(id, currentBid)}
             onRetract={handleRetractBid}
             isOwner={isOwner}
+            settings={settings}
           />
         </section>
 
