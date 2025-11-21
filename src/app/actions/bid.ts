@@ -91,29 +91,85 @@ export async function placeBid(
 
       // D. Validate Contract Logic
       if (contractLogic.enabled && contractLogic.rules.length > 0) {
-        const rule = contractLogic.rules.find((r: any) => 
+        const rule = contractLogic.rules.find((r: any) =>
           amount >= r.minBid && (!r.maxBid || amount <= r.maxBid)
         );
 
         if (!rule) {
-           // Fallback: if no rule matches (e.g. bid too high for defined rules), usually take the highest year or throw error.
-           // Let's assume the last rule covers "infinity" if maxBid is missing, but if user defined gaps, we might have an issue.
-           // For now, if no rule matches, we accept it (or should we reject?). 
-           // Let's reject to be safe if logic is enabled.
-           // Actually, let's look for the "highest" rule if amount exceeds all.
+           // Fallback: if no rule matches (e.g. bid too high for defined rules), use the highest rule
            const maxRule = contractLogic.rules.sort((a: any, b: any) => b.minBid - a.minBid)[0];
            if (amount > maxRule.minBid) {
-             // Use the highest rule's years
-             if (contractYears !== maxRule.years) {
-                throw new Error(`Para lances acima de $${maxRule.minBid}, o contrato deve ser de ${maxRule.years} anos.`);
+             // Validate against the highest rule
+             const isValid = validateContractRule(maxRule, contractYears);
+             if (!isValid.valid) {
+                throw new Error(isValid.message || 'Contrato inválido');
              }
            } else {
              throw new Error(`Não foi encontrada regra de contrato para o valor $${amount}.`);
            }
         } else {
-          if (contractYears !== rule.years) {
-            throw new Error(`Para lances entre $${rule.minBid} e $${rule.maxBid || '∞'}, o contrato deve ser de ${rule.years} anos.`);
+          // Validate against the matched rule
+          const isValid = validateContractRule(rule, contractYears);
+          if (!isValid.valid) {
+            throw new Error(isValid.message || 'Contrato inválido');
           }
+        }
+      }
+
+      // Helper function to validate contract years based on rule type
+      function validateContractRule(rule: any, years: number): { valid: boolean; message?: string } {
+        const rangeText = `$${rule.minBid} - ${rule.maxBid ? `$${rule.maxBid}` : '∞'}`;
+
+        switch (rule.durationType) {
+          case 'any':
+            // Any duration is allowed
+            return { valid: years >= 1 };
+
+          case 'min-2':
+            if (years < 2) {
+              return {
+                valid: false,
+                message: `Para lances entre ${rangeText}, o contrato deve ter no mínimo 2 anos (você escolheu ${years} ano${years !== 1 ? 's' : ''}).`
+              };
+            }
+            return { valid: true };
+
+          case 'min-3':
+            if (years < 3) {
+              return {
+                valid: false,
+                message: `Para lances entre ${rangeText}, o contrato deve ter no mínimo 3 anos (você escolheu ${years} ano${years !== 1 ? 's' : ''}).`
+              };
+            }
+            return { valid: true };
+
+          case 'min-4':
+            if (years < 4) {
+              return {
+                valid: false,
+                message: `Para lances entre ${rangeText}, o contrato deve ter no mínimo 4 anos (você escolheu ${years} ano${years !== 1 ? 's' : ''}).`
+              };
+            }
+            return { valid: true };
+
+          case 'fixed':
+            if (years !== rule.years) {
+              return {
+                valid: false,
+                message: `Para lances entre ${rangeText}, o contrato deve ter exatamente ${rule.years} ano${rule.years !== 1 ? 's' : ''}.`
+              };
+            }
+            return { valid: true };
+
+          default:
+            // Legacy support: if no durationType is specified, assume fixed
+            if (rule.years !== undefined && years !== rule.years) {
+              return {
+                valid: false,
+                message: `Para lances entre ${rangeText}, o contrato deve ser de ${rule.years} ano${rule.years !== 1 ? 's' : ''}.`
+              };
+            }
+            return { valid: true };
         }
       }
 

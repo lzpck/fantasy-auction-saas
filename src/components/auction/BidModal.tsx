@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Gavel, AlertCircle } from 'lucide-react';
-import { AuctionSettings } from '@/types/auction-settings';
+import { X, Gavel, AlertCircle, Info } from 'lucide-react';
+import { AuctionSettings, ContractRule, validateContractYears, getContractDurationLabel } from '@/types/auction-settings';
 
 interface BidModalProps {
   isOpen: boolean;
@@ -28,6 +28,8 @@ export function BidModal({
   const [years, setYears] = useState<number>(1);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentRule, setCurrentRule] = useState<ContractRule | null>(null);
+  const [yearsWarning, setYearsWarning] = useState<string | null>(null);
 
   // Calculate minimum bid based on settings
   const minIncrement = settings.minIncrement || 1;
@@ -45,30 +47,71 @@ export function BidModal({
       setAmount(minBid);
       setYears(1);
       setError(null);
+      setYearsWarning(null);
+      setCurrentRule(null);
     }
   }, [isOpen, minBid]);
 
-  // Validate contract years based on amount and rules
+  // Find and apply contract rule based on amount
   useEffect(() => {
-    if (!settings.contractLogic?.enabled) return;
+    if (!settings.contractLogic?.enabled) {
+      setCurrentRule(null);
+      return;
+    }
 
     const rules = settings.contractLogic.rules;
-    if (!rules || rules.length === 0) return;
+    if (!rules || rules.length === 0) {
+      setCurrentRule(null);
+      return;
+    }
 
-    const rule = rules.find((r) => 
+    const rule = rules.find((r) =>
       amount >= r.minBid && (!r.maxBid || amount <= r.maxBid)
     );
 
     if (rule) {
-      setYears(rule.years);
+      setCurrentRule(rule);
+
+      // Set default years based on rule type
+      if (rule.durationType === 'fixed') {
+        setYears(rule.years || 1);
+      } else if (rule.durationType === 'any') {
+        // Keep current years or set to 1
+        setYears(prev => prev || 1);
+      } else {
+        // For min-X types, set to minimum
+        setYears(rule.minYears || 1);
+      }
     } else {
-        // If amount is higher than all rules, find the highest rule
-        const maxRule = [...rules].sort((a, b) => b.minBid - a.minBid)[0];
-        if (maxRule && amount > maxRule.minBid) {
-            setYears(maxRule.years);
+      // If amount is higher than all rules, find the highest rule
+      const maxRule = [...rules].sort((a, b) => b.minBid - a.minBid)[0];
+      if (maxRule && amount > maxRule.minBid) {
+        setCurrentRule(maxRule);
+        if (maxRule.durationType === 'fixed') {
+          setYears(maxRule.years || 1);
+        } else if (maxRule.durationType !== 'any') {
+          setYears(maxRule.minYears || 1);
         }
+      } else {
+        setCurrentRule(null);
+      }
     }
   }, [amount, settings.contractLogic]);
+
+  // Validate years when they change
+  useEffect(() => {
+    if (!currentRule || !settings.contractLogic?.enabled) {
+      setYearsWarning(null);
+      return;
+    }
+
+    const validation = validateContractYears(currentRule, years);
+    if (!validation.valid && validation.message) {
+      setYearsWarning(validation.message);
+    } else {
+      setYearsWarning(null);
+    }
+  }, [years, currentRule, settings.contractLogic]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,16 +196,55 @@ export function BidModal({
 
                 {/* Contract Years Display/Input */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-400">Contrato (Anos)</label>
-                  <div className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-lg font-mono text-slate-300 flex items-center justify-between">
-                    <span>{years} {years === 1 ? 'Ano' : 'Anos'}</span>
-                    {settings.contractLogic?.enabled && (
-                       <span className="text-xs text-emerald-500 bg-emerald-950/30 px-2 py-1 rounded">Automático</span>
+                  <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
+                    Contrato (Anos)
+                    {currentRule && (
+                      <span className="text-xs text-sky-400 bg-sky-950/30 px-2 py-0.5 rounded">
+                        {getContractDurationLabel(currentRule.durationType, currentRule.years, currentRule.minYears)}
+                      </span>
                     )}
-                  </div>
-                   {settings.contractLogic?.enabled && (
+                  </label>
+
+                  {/* Show input if rule allows selection */}
+                  {settings.contractLogic?.enabled && currentRule && currentRule.durationType !== 'fixed' ? (
+                    <div className="space-y-2">
+                      <input
+                        type="number"
+                        value={years}
+                        onChange={(e) => setYears(Number(e.target.value))}
+                        min={currentRule.minYears || 1}
+                        max={10}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-lg font-mono text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                      />
+                      {currentRule.durationType !== 'any' && (
+                        <div className="flex items-start gap-2 bg-blue-950/20 border border-blue-900/30 rounded-lg p-2">
+                          <Info className="w-3 h-3 text-blue-400 mt-0.5 shrink-0" />
+                          <p className="text-xs text-blue-300">
+                            {currentRule.durationType === 'min-2' && 'Você pode escolher 2 anos ou mais'}
+                            {currentRule.durationType === 'min-3' && 'Você pode escolher 3 anos ou mais'}
+                            {currentRule.durationType === 'min-4' && 'Você pode escolher 4 anos ou mais'}
+                          </p>
+                        </div>
+                      )}
+                      {yearsWarning && (
+                        <div className="flex items-start gap-2 bg-yellow-950/20 border border-yellow-900/30 rounded-lg p-2">
+                          <AlertCircle className="w-3 h-3 text-yellow-400 mt-0.5 shrink-0" />
+                          <p className="text-xs text-yellow-300">{yearsWarning}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-lg font-mono text-slate-300 flex items-center justify-between">
+                      <span>{years} {years === 1 ? 'Ano' : 'Anos'}</span>
+                      {settings.contractLogic?.enabled && currentRule?.durationType === 'fixed' && (
+                        <span className="text-xs text-emerald-500 bg-emerald-950/30 px-2 py-1 rounded">Automático</span>
+                      )}
+                    </div>
+                  )}
+
+                  {settings.contractLogic?.enabled && currentRule?.durationType === 'fixed' && (
                     <p className="text-xs text-slate-500">
-                      Calculado automaticamente baseado no valor do lance.
+                      Duração automática de {years} ano{years !== 1 ? 's' : ''} para esta faixa de valor.
                     </p>
                   )}
                 </div>
