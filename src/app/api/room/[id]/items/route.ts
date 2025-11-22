@@ -55,7 +55,7 @@ export async function GET(
   if (status === 'AVAILABLE') {
     where.status = 'PENDING';
   } else if (status !== 'ALL') {
-    where.status = status as Prisma.AuctionItemStatus;
+    where.status = status as import('@prisma/client').PlayerStatus;
   }
 
   try {

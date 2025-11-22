@@ -21,6 +21,9 @@ interface SleeperUser {
   user_id: string;
   display_name: string;
   avatar?: string;
+  metadata?: {
+    team_name?: string;
+  };
 }
 
 interface SleeperRoster {
@@ -81,30 +84,6 @@ async function fetchSleeperRosters(leagueId: string): Promise<SleeperRoster[]> {
   }
 
   return response.json();
-}
-
-function calculateBudget(roster: SleeperRoster, league: SleeperLeague): number {
-  // Sleeper API returns budget in standard units (e.g., 200 for FAAB)
-  // We convert to millions scale: 200 -> 200000000 (200M)
-  const MILLION = 1000000;
-
-  if (roster.settings?.budget) {
-    return roster.settings.budget * MILLION;
-  }
-
-  if (league.settings?.budget) {
-    return league.settings.budget * MILLION;
-  }
-
-  if (roster.settings?.wins !== undefined) {
-    return roster.settings.wins * MILLION;
-  }
-
-  if (roster.settings?.fpts !== undefined) {
-    return Math.round(roster.settings.fpts) * MILLION;
-  }
-
-  return 200 * MILLION; // Default 200M
 }
 
 function calculateRosterSpots(
@@ -180,14 +159,17 @@ export async function createRoomFromSleeper(
 
     const teamsData = rosters.map((roster) => {
       const owner = userMap.get(roster.owner_id);
-      const budget = calculateBudget(roster, league);
       const rosterSpots = calculateRosterSpots(roster, league);
 
+      // Prioriza o team_name do metadata, senao usa o display_name, senao um fallback
+      const teamName = owner?.metadata?.team_name || owner?.display_name || `Team ${roster.roster_id}`;
+      const ownerName = owner?.display_name || null;
+
       return {
-        name: owner?.display_name || `Team ${roster.roster_id}`,
-        ownerName: owner?.display_name || null,
+        name: teamName,
+        ownerName: ownerName,
         sleeperOwnerId: roster.owner_id,
-        budget,
+        budget: 0, // Definido posteriormente pelo dono da sala
         rosterSpots,
         pinHash: null, // definido pelo usuario depois
       };
