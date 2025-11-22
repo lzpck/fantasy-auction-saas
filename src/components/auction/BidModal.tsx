@@ -34,16 +34,17 @@ export function BidModal({
   const [yearsWarning, setYearsWarning] = useState<string | null>(null);
 
   // Calculate minimum bid based on settings
+  // Calculate minimum bid based on settings
   const minIncrement = settings.minIncrement || 1000000; // Default 1M
-  let minBid = 1000000; // Default 1M
-  if (currentBid > 0) {
-    if (minIncrement < 1) {
-      // Percentage-based increment
-      minBid = Math.ceil(currentBid * (1 + minIncrement));
-    } else {
-      // Fixed amount increment (already in millions)
-      minBid = currentBid + minIncrement;
-    }
+  let minBid = 1000000; // Default 1M fallback
+
+  if (minIncrement >= 1) {
+    // Fixed amount increment (already in millions or raw units)
+    // If currentBid is 0, minBid becomes minIncrement (base value)
+    minBid = currentBid + minIncrement;
+  } else if (currentBid > 0) {
+    // Percentage-based increment
+    minBid = Math.ceil(currentBid * (1 + minIncrement));
   }
 
   useEffect(() => {

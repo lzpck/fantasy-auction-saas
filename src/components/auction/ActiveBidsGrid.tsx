@@ -63,6 +63,13 @@ export function ActiveBidsGrid({
   isOwner,
   settings,
 }: ActiveBidsGridProps) {
+  const [now, setNow] = useState<number | null>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   if (activeBids.length === 0) {
     return null;
   }
@@ -101,16 +108,17 @@ export function ActiveBidsGrid({
 
             // Calculate next bid based on room settings
             const minIncrement = settings.minIncrement || 1000000; // Default 1M
-            let nextBid = 1000000; // Default 1M
-            if (currentBid > 0) {
-              if (minIncrement < 1) {
-                // Percentage-based (e.g., 0.15 = 15%)
-                nextBid = Math.ceil(currentBid * (1 + minIncrement));
-              } else {
-                // Fixed amount increment (already in millions)
-                nextBid = currentBid + minIncrement;
-              }
+            let nextBid = 1000000; // Default 1M fallback
+
+            if (minIncrement >= 1) {
+              // Fixed amount increment
+              nextBid = currentBid + minIncrement;
+            } else if (currentBid > 0) {
+              // Percentage-based
+              nextBid = Math.ceil(currentBid * (1 + minIncrement));
             }
+
+            const isExpired = now !== null && item.expiresAt && new Date(item.expiresAt).getTime() < now;
 
             return (
               <motion.div
@@ -126,6 +134,7 @@ export function ActiveBidsGrid({
                       ? 'bg-slate-900/80 border-emerald-500/50 shadow-emerald-900/20'
                       : 'bg-slate-900/80 border-rose-500 shadow-rose-900/20 animate-pulse-border'
                   }
+                  ${isExpired ? 'opacity-75 grayscale' : ''}
                 `}
               >
                 {/* Status Badge */}
@@ -203,7 +212,7 @@ export function ActiveBidsGrid({
                 </div>
 
                 {/* Action Button */}
-                {!isWinning && (
+                {!isWinning && !isExpired && (
                   <button
                     onClick={() => onBid(item.id, currentBid)}
                     className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg shadow-lg shadow-rose-900/50 active:scale-95 transition-all flex items-center justify-center gap-2"
@@ -211,6 +220,13 @@ export function ActiveBidsGrid({
                     <AlertCircle size={16} />
                     COBRIR ({formatCurrencyMillions(nextBid)})
                   </button>
+                )}
+                
+                {isExpired && !isWinning && (
+                    <div className="w-full py-2 bg-slate-800 text-slate-500 font-bold rounded-lg text-center text-xs flex items-center justify-center gap-2">
+                        <Clock size={14} />
+                        LANCE EXPIRADO
+                    </div>
                 )}
                 
                 {isWinning && (

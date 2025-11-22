@@ -163,3 +163,31 @@ export async function createTeam(roomId: string, name: string, budget: number, s
     return { success: false, error: 'Failed to create team' };
   }
 }
+
+export async function deleteRoom(roomId: string) {
+  const auth = await verifyRoomOwnership(roomId);
+  if (!auth.authorized) return { success: false, error: auth.error };
+
+  try {
+    // Use transaction for safety and atomicity
+    await prisma.$transaction(async (tx) => {
+      // Explicitly delete related data to ensure "cascading removal" as requested
+      // Although onDelete: Cascade in schema handles this, explicit delete is safer against schema changes
+      // and ensures we are aware of what we are deleting.
+      
+      // 1. Delete Items (cascades to bids)
+      await tx.auctionItem.deleteMany({ where: { auctionRoomId: roomId } });
+      
+      // 2. Delete Teams (cascades to bids, notifications)
+      await tx.auctionTeam.deleteMany({ where: { auctionRoomId: roomId } });
+      
+      // 3. Delete the Room
+      await tx.auctionRoom.delete({ where: { id: roomId } });
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting room:', error);
+    return { success: false, error: 'Failed to delete room' };
+  }
+}

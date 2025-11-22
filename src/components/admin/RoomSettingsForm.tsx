@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AuctionSettings, ContractRule, ContractDurationType, getContractDurationLabel } from '@/types/auction-settings';
-import { updateRoomSettings } from '@/app/actions/admin-room';
+import { updateRoomSettings, deleteRoom } from '@/app/actions/admin-room';
 import { Save, AlertCircle, Check, Trash2, Plus, Info } from 'lucide-react';
 import { parseFromMillions, toMillionsInput, formatToMillions } from '@/lib/format-millions';
 
@@ -15,6 +15,20 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
   const [settings, setSettings] = useState<AuctionSettings>(initialSettings);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteRoom = async () => {
+    setIsDeleting(true);
+    const result = await deleteRoom(roomId);
+    if (result.success) {
+      window.location.href = '/dashboard';
+    } else {
+      setMessage({ type: 'error', text: result.error || 'Erro ao excluir sala.' });
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
 
   // Listener para mostrar/ocultar campo de anos fixos
   useEffect(() => {
@@ -452,6 +466,69 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
           {message.text}
         </div>
       )}
+
+      <div className="pt-8 mt-8 border-t border-red-900/30">
+        <h3 className="text-lg font-semibold text-red-500 mb-4 flex items-center gap-2">
+          <AlertCircle className="w-5 h-5" />
+          Zona de Perigo
+        </h3>
+        <div className="bg-red-950/10 border border-red-900/30 rounded-lg p-4 flex items-center justify-between">
+          <div>
+            <h4 className="text-white font-medium">Excluir Sala</h4>
+            <p className="text-sm text-red-400/80">
+              Esta ação não pode ser desfeita. Todos os dados serão perdidos.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="px-4 py-2 bg-red-950 hover:bg-red-900 text-red-500 border border-red-900/50 rounded-md transition-colors text-sm font-medium"
+          >
+            Excluir Sala
+          </button>
+        </div>
+      </div>
+
+      <DeleteRoomModal 
+        isOpen={showDeleteModal} 
+        onClose={() => setShowDeleteModal(false)} 
+        onConfirm={handleDeleteRoom}
+        isDeleting={isDeleting}
+      />
+    </div>
+  );
+}
+
+function DeleteRoomModal({ isOpen, onClose, onConfirm, isDeleting }: { isOpen: boolean; onClose: () => void; onConfirm: () => void; isDeleting: boolean }) {
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+      <div className="w-full max-w-md bg-slate-900 border border-red-500/50 rounded-lg p-6 shadow-2xl">
+        <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+          <AlertCircle className="w-6 h-6 text-red-500" />
+          Excluir Sala Definitivamente
+        </h3>
+        <p className="text-slate-300 mb-6">
+          Tem certeza que deseja excluir esta sala? Esta ação é <strong className="text-red-400">irreversível</strong> e apagará todos os dados, incluindo times, jogadores, lances e histórico.
+        </p>
+        
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            disabled={isDeleting}
+            className="px-4 py-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-md transition-colors flex items-center gap-2"
+          >
+            {isDeleting ? 'Excluindo...' : 'Sim, Excluir Sala'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

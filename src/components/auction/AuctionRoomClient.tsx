@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuctionStore } from '@/hooks/useAuctionStore';
 import { useSyncManager } from '@/hooks/useSyncManager';
 import { AuctionHeader } from './AuctionHeader';
@@ -24,6 +24,20 @@ export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
   const [bidModalOpen, setBidModalOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<{ id: string; name: string; currentBid: number } | null>(null);
 
+  // Close modal if item expires while open
+  useEffect(() => {
+    if (bidModalOpen && selectedPlayer && data) {
+      const player = data.activeItems.find(i => i.id === selectedPlayer.id);
+      // Check if player exists in active items and is expired
+      // Note: If player is removed from activeItems (e.g. sold), we might also want to close
+      if (player?.expiresAt && new Date(player.expiresAt).getTime() < Date.now()) {
+        setBidModalOpen(false);
+        setSelectedPlayer(null);
+        alert("Lance expirado");
+      }
+    }
+  }, [data, bidModalOpen, selectedPlayer]);
+
   if (isLoading || !data) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -42,9 +56,17 @@ export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
       console.error("Failed to parse settings", e);
   }
 
+
+
   const handleOpenBidModal = (playerId: string, currentBid: number) => {
     const player = activeItems.find(i => i.id === playerId) || data.marketItems.find(i => i.id === playerId);
     if (player) {
+        // Check if expired
+        if (player.expiresAt && new Date(player.expiresAt).getTime() < Date.now()) {
+            alert("Lance expirado");
+            return;
+        }
+
         setSelectedPlayer({ id: playerId, name: player.name, currentBid });
         setBidModalOpen(true);
     }
