@@ -1,4 +1,5 @@
 import { getTeamSession } from '@/app/actions/auth';
+import { getAdminSession } from '@/app/actions/admin-auth';
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
@@ -8,10 +9,26 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await getTeamSession();
+  const teamSession = await getTeamSession();
+  let isAdmin = false;
 
-  if (!session || session.roomId !== id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!teamSession || teamSession.roomId !== id) {
+    // Check for admin session
+    const adminSession = await getAdminSession();
+    if (adminSession) {
+        // Verify if admin owns the room
+        const room = await prisma.auctionRoom.findUnique({
+            where: { id },
+            select: { ownerId: true }
+        });
+        if (room && room.ownerId === adminSession.userId) {
+            isAdmin = true;
+        }
+    }
+
+    if (!isAdmin) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
   }
 
   const { searchParams } = new URL(request.url);
@@ -38,7 +55,7 @@ export async function GET(
   if (status === 'AVAILABLE') {
     where.status = 'PENDING';
   } else if (status !== 'ALL') {
-    where.status = status as any;
+    where.status = status as Prisma.AuctionItemStatus;
   }
 
   try {

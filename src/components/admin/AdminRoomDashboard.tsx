@@ -22,17 +22,10 @@ interface AdminRoomDashboardProps {
   roomName: string;
   settings: AuctionSettings;
   teams: Team[];
-  players: Array<{
-    id: string;
-    name: string;
-    position: string;
-    nflTeam: string | null;
-    status: string;
-  }>;
   userName: string;
 }
 
-export function AdminRoomDashboard({ roomId, roomName, settings, teams, players, userName }: AdminRoomDashboardProps) {
+export function AdminRoomDashboard({ roomId, roomName, settings, teams, userName }: AdminRoomDashboardProps) {
   const [activeTab, setActiveTab] = useState<'general' | 'players' | 'teams'>('general');
 
   return (
@@ -138,14 +131,14 @@ export function AdminRoomDashboard({ roomId, roomName, settings, teams, players,
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2 space-y-6">
                      <PlayerImport roomId={roomId} />
-                     <PlayerList roomId={roomId} players={players} />
+                     <PlayerList roomId={roomId} />
                   </div>
                   <div className="bg-slate-900/50 border border-white/10 rounded-lg p-6 h-fit">
                     <h3 className="text-lg font-semibold text-white mb-4">Resumo</h3>
                     <div className="space-y-4">
                       <div className="flex justify-between items-center p-3 bg-slate-950 rounded-md">
                         <span className="text-slate-400">Total de Jogadores</span>
-                        <span className="text-2xl font-bold text-white">{players.length}</span>
+                        <span className="text-2xl font-bold text-white">-</span>
                       </div>
                       <p className="text-xs text-slate-500">
                         Jogadores importados ficam com status &quot;PENDING&quot; até serem nomeados para leilão.

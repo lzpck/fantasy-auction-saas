@@ -22,9 +22,7 @@ export default async function AdminRoomPage({ params }: AdminPageProps) {
       teams: {
         orderBy: { name: 'asc' }
       },
-      items: {
-        orderBy: { name: 'asc' }
-      }
+
     }
   });
 
@@ -57,13 +55,7 @@ export default async function AdminRoomPage({ params }: AdminPageProps) {
         budget: t.budget,
         rosterSpots: t.rosterSpots
       }))}
-      players={room.items.map(p => ({
-        id: p.id,
-        name: p.name,
-        position: p.position,
-        nflTeam: p.nflTeam,
-        status: p.status
-      }))}
+
       userName={session.name}
     />
   );
