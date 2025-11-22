@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getAdminSession } from './admin-auth';
 import { revalidatePath } from 'next/cache';
 import { AuctionSettings } from '@/types/auction-settings';
+import bcrypt from 'bcryptjs';
 
 export async function verifyRoomOwnership(roomId: string) {
   const session = await getAdminSession();
@@ -189,5 +190,34 @@ export async function deleteRoom(roomId: string) {
   } catch (error) {
     console.error('Error deleting room:', error);
     return { success: false, error: 'Failed to delete room' };
+  }
+}
+
+export async function resetTeamPin(teamId: string) {
+  const team = await prisma.auctionTeam.findUnique({
+    where: { id: teamId },
+    select: { auctionRoomId: true }
+  });
+
+  if (!team) return { success: false, error: 'Team not found' };
+
+  const auth = await verifyRoomOwnership(team.auctionRoomId);
+  if (!auth.authorized) return { success: false, error: auth.error };
+
+  try {
+    // Generate 4 digit PIN
+    const newPin = Math.floor(1000 + Math.random() * 9000).toString();
+    const hashedPin = await bcrypt.hash(newPin, 10);
+
+    await prisma.auctionTeam.update({
+      where: { id: teamId },
+      data: { pinHash: hashedPin }
+    });
+
+    revalidatePath(`/room/${team.auctionRoomId}/admin`);
+    return { success: true, newPin };
+  } catch (error) {
+    console.error('Error resetting team PIN:', error);
+    return { success: false, error: 'Failed to reset PIN' };
   }
 }

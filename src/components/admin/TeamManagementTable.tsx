@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { updateTeamStats, createTeam } from '@/app/actions/admin-room';
-import { Save, Plus, Users2 } from 'lucide-react';
+import { updateTeamStats, createTeam, resetTeamPin } from '@/app/actions/admin-room';
+import { Save, Plus, Users2, KeyRound, Copy, Check } from 'lucide-react';
 import { parseFromMillions, toMillionsInput } from '@/lib/format-millions';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useToast } from '@/components/ui/toast/ToastProvider';
+import { AlertDialog } from '@/components/ui/AlertDialog';
 
 interface Team {
   id: string;
@@ -27,6 +28,12 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
   // New Team State - budget stored in millions for input
   const [newTeam, setNewTeam] = useState({ name: '', budget: 200, spots: 15 });
   const [isCreating, setIsCreating] = useState(false);
+
+  // Reset PIN State
+  const [confirmResetTeamId, setConfirmResetTeamId] = useState<string | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
+  const [newPinData, setNewPinData] = useState<{ teamName: string; pin: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleInputChange = (teamId: string, field: 'name' | 'budget' | 'spots', value: string | number) => {
     const team = teams.find(t => t.id === teamId);
@@ -88,6 +95,41 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
     }
 
     setIsCreating(false);
+  };
+
+  const handleResetClick = (teamId: string) => {
+    setConfirmResetTeamId(teamId);
+  };
+
+  const handleConfirmReset = async () => {
+    if (!confirmResetTeamId) return;
+
+    setIsResetting(true);
+    const team = teams.find(t => t.id === confirmResetTeamId);
+    
+    const result = await resetTeamPin(confirmResetTeamId);
+
+    if (result.success && result.newPin) {
+      setNewPinData({ 
+        teamName: team?.name || 'Time', 
+        pin: result.newPin 
+      });
+      showToast('success', 'PIN redefinido com sucesso!');
+    } else {
+      showToast('error', result.error || 'Erro ao redefinir PIN.');
+    }
+
+    setIsResetting(false);
+    setConfirmResetTeamId(null);
+  };
+
+  const handleCopyPin = () => {
+    if (newPinData?.pin) {
+      navigator.clipboard.writeText(newPinData.pin);
+      setCopied(true);
+      showToast('success', 'PIN copiado!');
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   return (
@@ -200,6 +242,13 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
                         {saving === team.id ? '...' : <><Save className="w-3 h-3" /> Salvar</>}
                       </button>
                     )}
+                    <button
+                      onClick={() => handleResetClick(team.id)}
+                      className="inline-flex items-center gap-1 px-3 py-1 ml-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded text-xs font-medium transition-colors border border-white/10"
+                      title="Redefinir PIN"
+                    >
+                      <KeyRound className="w-3 h-3" /> PIN
+                    </button>
                   </td>
                 </tr>
               );
@@ -214,6 +263,68 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
           </tbody>
         </table>
       </div>
+
+      
+      <AlertDialog
+        isOpen={!!confirmResetTeamId}
+        onClose={() => setConfirmResetTeamId(null)}
+        onConfirm={handleConfirmReset}
+        title="Redefinir PIN"
+        description={
+          <span>
+            Tem certeza que deseja redefinir o PIN do time <strong>{teams.find(t => t.id === confirmResetTeamId)?.name}</strong>?
+            <br /><br />
+            O PIN anterior será invalidado imediatamente e um novo PIN de 4 dígitos será gerado.
+          </span>
+        }
+        confirmText="Redefinir PIN"
+        variant="warning"
+        isLoading={isResetting}
+      />
+
+      {/* Success Modal for New PIN */}
+      {newPinData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-emerald-500/30 rounded-xl p-6 max-w-md w-full mx-4 animate-in zoom-in-95 duration-200 shadow-lg shadow-emerald-900/20">
+            <div className="text-center space-y-4">
+              <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
+                <KeyRound className="w-6 h-6 text-emerald-500" />
+              </div>
+              
+              <div>
+                <h2 className="text-xl font-bold text-white">Novo PIN Gerado!</h2>
+                <p className="text-slate-400 text-sm mt-1">
+                  O PIN para o time <strong>{newPinData.teamName}</strong> foi atualizado.
+                </p>
+              </div>
+
+              <div className="bg-slate-950 border border-white/10 rounded-lg p-4 flex items-center justify-between gap-4">
+                <code className="text-2xl font-mono font-bold text-white tracking-wider">
+                  {newPinData.pin}
+                </code>
+                <button
+                  onClick={handleCopyPin}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
+                  title="Copiar PIN"
+                >
+                  {copied ? <Check className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
+                </button>
+              </div>
+
+              <div className="text-xs text-amber-500/80 bg-amber-500/5 p-3 rounded border border-amber-500/20">
+                ⚠️ Anote este PIN agora. Por segurança, ele não será exibido novamente.
+              </div>
+
+              <button
+                onClick={() => setNewPinData(null)}
+                className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors border border-white/10"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

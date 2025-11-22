@@ -68,7 +68,10 @@ export async function getTeamSession(): Promise<TeamSession | null> {
       };
     }
   } catch {
-    cookieStore.delete(SESSION_COOKIE_NAME);
+    // Token invalido ou expirado
+    // Nao podemos deletar o cookie aqui pois esta funcao pode ser chamada
+    // durante a renderizacao de um Server Component.
+    // O cookie invalido sera ignorado e o usuario tera que fazer login novamente.
   }
 
   return null;
