@@ -76,15 +76,15 @@ export async function retractBid(
           },
         });
 
-        // Notify the restored winner? Maybe.
-        await tx.notification.create({
-          data: {
-            teamId: previousBid.teamId,
-            type: 'WINNER_RESTORED',
-            message: `Seu lance em ${item.name} foi restaurado após cancelamento do lance superior.`,
-            relatedItemId: itemId,
-          },
-        });
+        // TODO: Notify the restored winner when notification system is implemented
+        // await tx.notification.create({
+        //   data: {
+        //     teamId: previousBid.teamId,
+        //     type: 'WINNER_RESTORED',
+        //     message: `Seu lance em ${item.name} foi restaurado após cancelamento do lance superior.`,
+        //     relatedItemId: itemId,
+        //   },
+        // });
 
       } else {
         // No previous bid, reset item to PENDING

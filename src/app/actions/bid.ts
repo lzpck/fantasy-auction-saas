@@ -277,17 +277,17 @@ export async function placeBid(
         },
       });
 
-      // Notify previous winner
-      if (player.winningTeamId && player.winningTeamId !== teamId) {
-        await tx.notification.create({
-          data: {
-            teamId: player.winningTeamId,
-            type: 'OUTBID',
-            message: `Você foi superado por ${team.name} em ${player.name} ($${amount} - ${contractYears} anos)`,
-            relatedItemId: playerId,
-          },
-        });
-      }
+      // TODO: Notify previous winner when notification system is implemented
+      // if (player.winningTeamId && player.winningTeamId !== teamId) {
+      //   await tx.notification.create({
+      //     data: {
+      //       teamId: player.winningTeamId,
+      //       type: 'OUTBID',
+      //       message: `Você foi superado por ${team.name} em ${player.name} ($${amount} - ${contractYears} anos)`,
+      //       relatedItemId: playerId,
+      //     },
+      //   });
+      // }
 
       revalidatePath(`/room/${roomId}`);
       return { success: true };
