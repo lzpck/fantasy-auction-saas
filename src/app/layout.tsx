@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fantasy Auction SaaS",
-  description: "Next.js App Router com Prisma e login por PIN",
+  title: "War Room Fantasy",
+  description: "A plataforma definitiva para seus leilões de Fantasy Football",
 };
 
 export default function RootLayout({

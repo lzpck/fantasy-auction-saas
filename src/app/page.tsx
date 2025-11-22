@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles, ArrowRight, ShieldCheck } from "lucide-react";
+import { Gavel, ArrowRight, ShieldCheck } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -9,7 +9,7 @@ export default function HomePage() {
       <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-sky-500 to-emerald-400" />
-          <span className="text-lg font-bold">Fantasy Auction</span>
+          <span className="text-lg font-bold">War Room Fantasy</span>
         </div>
         <div className="flex gap-4">
           <Link
@@ -29,20 +29,21 @@ export default function HomePage() {
 
       <div className="relative mx-auto flex min-h-[calc(100vh-80px)] max-w-5xl flex-col items-center justify-center px-6 py-16 text-center">
         <div className="mb-8 flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 backdrop-blur">
-          <Sparkles className="h-4 w-4 text-sky-300" />
-          <span>A revolução do seu Draft</span>
+          <Gavel className="h-4 w-4 text-sky-300" />
+          <span>O seu War Room definitivo</span>
         </div>
 
         <h1 className="mb-6 text-5xl font-black leading-tight text-white md:text-7xl">
-          Leilões de Fantasy <br />
+          Domine o seu <br />
           <span className="bg-gradient-to-r from-sky-400 to-emerald-400 bg-clip-text text-transparent">
-            Profissionais
+            Auction Draft
           </span>
         </h1>
 
         <p className="mb-10 max-w-2xl text-lg text-slate-300 md:text-xl">
-          Importe sua liga do Sleeper, defina orçamentos e realize leilões em
-          tempo real com uma interface moderna e intuitiva.
+          Transforme seu draft em uma verdadeira sala de guerra. Importe sua liga
+          do Sleeper, gerencie orçamentos e dispute jogadores em leilões em tempo
+          real.
         </p>
 
         <div className="flex flex-col gap-4 sm:flex-row">
@@ -64,16 +65,16 @@ export default function HomePage() {
         <div className="mt-20 grid grid-cols-1 gap-8 text-left md:grid-cols-3">
           {[
             {
-              title: "Sincronização Sleeper",
+              title: "Integração Sleeper",
               body: "Importe times, rosters e configurações da sua liga em segundos.",
             },
             {
-              title: "Acesso via PIN",
+              title: "Acesso Rápido",
               body: "Seus amigos entram na sala apenas com um PIN, sem cadastro.",
             },
             {
-              title: "Controle Total",
-              body: "Painel administrativo completo para o comissário gerenciar tudo.",
+              title: "Comando Central",
+              body: "Ferramentas completas para o comissário gerenciar o War Room.",
             },
           ].map((feature) => (
             <div

@@ -57,7 +57,7 @@ export default async function RoomPage({
         <header className="mb-8 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.2em] text-slate-500">
-              Auction Room
+              War Room
             </p>
             <h1 className="mt-1 text-3xl font-black lg:text-4xl">{room.name}</h1>
             <p className="text-slate-400">
@@ -74,9 +74,9 @@ export default async function RoomPage({
         <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur">
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-white">Lobby dos Times</h2>
+              <h2 className="text-2xl font-bold text-white">Postos de Comando</h2>
               <p className="text-sm text-slate-400">
-                Reivindique seu time com PIN ou faça login para continuar.
+                Assuma o comando do seu time com o PIN.
               </p>
             </div>
             {teamSession && (

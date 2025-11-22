@@ -32,7 +32,7 @@ export default async function DashboardPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-sky-500 to-emerald-400" />
-            <span className="text-lg font-bold">Fantasy Auction</span>
+            <span className="text-lg font-bold">War Room Fantasy</span>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-slate-400">
@@ -52,9 +52,9 @@ export default async function DashboardPage() {
         <div className="grid gap-12 lg:grid-cols-[1fr_400px]">
           <div className="space-y-8">
             <header>
-              <h1 className="text-3xl font-bold">Minhas Salas</h1>
+              <h1 className="text-3xl font-bold">Meus War Rooms</h1>
               <p className="mt-2 text-slate-400">
-                Gerencie seus leilões e configurações.
+                Gerencie seus leilões e configurações de sala.
               </p>
             </header>
 
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
               {rooms.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-12 text-center">
                   <p className="text-slate-400">
-                    Você ainda não criou nenhuma sala.
+                    Você ainda não criou nenhum War Room.
                   </p>
                 </div>
               ) : (
