@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // A url "Pooled" vai aqui (via variável de ambiente)
+  directUrl = env("DIRECT_URL")   // A url "Direct" vai aqui (via variável de ambiente)
 }
 
 // --- ENUMS ---
