@@ -77,26 +77,15 @@ export async function GET(
           },
         },
         orderBy: [
-            { status: 'asc' }, // NOMINATED < PENDING < SOLD (alphabetical order of enum strings might not be ideal, but let's see)
-            // Actually, we want NOMINATED first.
-            // Prisma doesn't support custom sort order easily without raw query.
-            // For now, let's sort by name, and the frontend handles the "Nominated" visual priority if they are in the list.
-            // OR we can rely on the status filter.
-            { name: 'asc' }
+            { expiresAt: 'asc' }, // Sort by expiration time (soonest first). Nulls (PENDING) come last in Postgres ASC.
+            { name: 'asc' }       // Tiebreaker
         ]
       }),
       prisma.auctionItem.count({ where }),
     ]);
 
-    // Custom sort to put NOMINATED first if they appear in this page (unlikely if we filter by status, but good for ALL)
-    const sortedItems = [...items].sort((a, b) => {
-        if (a.status === 'NOMINATED' && b.status !== 'NOMINATED') return -1;
-        if (a.status !== 'NOMINATED' && b.status === 'NOMINATED') return 1;
-        return 0; // Keep original sort (name)
-    });
-
     return NextResponse.json({
-      items: sortedItems,
+      items,
       total,
       page,
       totalPages: Math.ceil(total / limit),
