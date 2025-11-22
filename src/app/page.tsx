@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Gavel, ArrowRight, ShieldCheck } from "lucide-react";
+import { Gavel, ArrowRight, ShieldCheck, Coffee } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -89,6 +89,27 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+
+        <footer className="mt-24 border-t border-white/5 pt-12 pb-8">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="flex items-center gap-2 text-sm text-slate-400">
+              <Coffee className="h-4 w-4 text-amber-400/60" />
+              <span>Gostou do War Room Fantasy?</span>
+            </div>
+            <p className="max-w-md text-xs text-slate-500 leading-relaxed">
+              Este projeto é desenvolvido com dedicação. Se você acha útil e quer apoiar o desenvolvimento contínuo, considere fazer uma contribuição.
+            </p>
+            <a
+              href="https://buymeacoffee.com/lzpck"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-5 py-2.5 text-sm font-medium text-amber-300/90 transition hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300"
+            >
+              <Coffee className="h-4 w-4 transition-transform group-hover:scale-110" />
+              Apoiar com um café
+            </a>
+          </div>
+        </footer>
       </div>
     </div>
   );
