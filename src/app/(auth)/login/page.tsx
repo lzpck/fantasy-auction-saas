@@ -5,25 +5,26 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { loginAdmin } from '@/app/actions/admin-auth';
 import { ArrowRight, Loader2 } from 'lucide-react';
+import { useToast } from '@/components/ui/toast/ToastProvider';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
     startTransition(async () => {
       const result = await loginAdmin(email, password);
 
       if (result.success) {
+        showToast('success', 'Login realizado com sucesso!');
         router.push('/dashboard');
       } else {
-        setError(result.error || 'Erro ao fazer login');
+        showToast('error', result.error || 'Erro ao fazer login');
       }
     });
   };
@@ -63,12 +64,6 @@ export default function LoginPage() {
             placeholder="••••••••"
           />
         </div>
-
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-200 text-sm p-3 rounded-lg">
-            {error}
-          </div>
-        )}
 
         <button
           type="submit"

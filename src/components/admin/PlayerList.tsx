@@ -1,9 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Trash2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Search, Trash2, ChevronLeft, ChevronRight, RefreshCw, Users } from 'lucide-react';
 import { deletePlayer, clearAllPlayers } from '@/app/actions/admin-room';
 import useSWR from 'swr';
+import { useToast } from '@/components/ui/toast/ToastProvider';
+import { AlertDialog } from '@/components/ui/AlertDialog';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface Player {
   id: string;
@@ -20,10 +23,13 @@ interface PlayerListProps {
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export function PlayerList({ roomId }: PlayerListProps) {
+  const { showToast } = useToast();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState(false);
+  const [playerToDelete, setPlayerToDelete] = useState<string | null>(null);
+  const [showClearAllModal, setShowClearAllModal] = useState(false);
 
   const { data, isLoading, mutate } = useSWR(
     `/api/room/${roomId}/items?page=${page}&limit=50&search=${search}`,
@@ -37,22 +43,34 @@ export function PlayerList({ roomId }: PlayerListProps) {
   const totalPages = data?.totalPages || 1;
   const totalPlayers = data?.total || 0;
 
-  const handleDelete = async (playerId: string) => {
-    if (!confirm('Tem certeza que deseja remover este jogador?')) return;
-    
-    setIsDeleting(playerId);
-    await deletePlayer(playerId);
+  const confirmDelete = async () => {
+    if (!playerToDelete) return;
+
+    setIsDeleting(playerToDelete);
+    const result = await deletePlayer(playerToDelete);
     await mutate(); // Refresh list
     setIsDeleting(null);
+    setPlayerToDelete(null);
+
+    if (result?.success) {
+      showToast('success', 'Jogador removido com sucesso!');
+    } else {
+      showToast('error', result?.error || 'Erro ao remover jogador.');
+    }
   };
 
-  const handleClearAll = async () => {
-    if (!confirm('ATENÇÃO: Isso removerá TODOS os jogadores da sala. Esta ação não pode ser desfeita. Tem certeza?')) return;
-    
+  const confirmClearAll = async () => {
     setIsClearing(true);
-    await clearAllPlayers(roomId);
+    const result = await clearAllPlayers(roomId);
     await mutate(); // Refresh list
     setIsClearing(false);
+    setShowClearAllModal(false);
+
+    if (result?.success) {
+      showToast('success', 'Todos os jogadores foram removidos!');
+    } else {
+      showToast('error', result?.error || 'Erro ao remover jogadores.');
+    }
   };
 
   return (
@@ -77,7 +95,7 @@ export function PlayerList({ roomId }: PlayerListProps) {
           </div>
           
           <button
-            onClick={handleClearAll}
+            onClick={() => setShowClearAllModal(true)}
             disabled={isClearing || totalPlayers === 0}
             className="px-3 py-2 bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 rounded-md text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Remover todos os jogadores"
@@ -126,7 +144,7 @@ export function PlayerList({ roomId }: PlayerListProps) {
                     </td>
                     <td className="px-4 py-2 text-right">
                     <button
-                        onClick={() => handleDelete(player.id)}
+                        onClick={() => setPlayerToDelete(player.id)}
                         disabled={isDeleting === player.id}
                         className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-900/20 rounded transition-colors"
                         title="Remover jogador"
@@ -138,8 +156,11 @@ export function PlayerList({ roomId }: PlayerListProps) {
                 ))}
                 {players.length === 0 && !isLoading && (
                 <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
-                    {search ? 'Nenhum jogador encontrado para a busca.' : 'Nenhum jogador cadastrado.'}
+                    <td colSpan={5} className="p-0">
+                      <EmptyState
+                        icon={Users}
+                        message={search ? 'Nenhum jogador encontrado para a busca.' : 'Nenhum jogador cadastrado.'}
+                      />
                     </td>
                 </tr>
                 )}
@@ -172,6 +193,40 @@ export function PlayerList({ roomId }: PlayerListProps) {
             </div>
         </div>
       )}
+
+      {/* Delete Player Dialog */}
+      <AlertDialog
+        isOpen={!!playerToDelete}
+        onClose={() => setPlayerToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Remover Jogador?"
+        description="Tem certeza que deseja remover este jogador? Esta ação não pode ser desfeita."
+        confirmText="Sim, Remover"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={!!isDeleting}
+        loadingText="Removendo..."
+      />
+
+      {/* Clear All Players Dialog */}
+      <AlertDialog
+        isOpen={showClearAllModal}
+        onClose={() => setShowClearAllModal(false)}
+        onConfirm={confirmClearAll}
+        title="Remover Todos os Jogadores?"
+        description={
+          <>
+            <strong className="text-amber-400">ATENÇÃO:</strong> Isso removerá{' '}
+            <strong className="text-red-400">TODOS</strong> os jogadores da sala. Esta ação{' '}
+            <strong className="text-red-400">não pode ser desfeita</strong>. Tem certeza?
+          </>
+        }
+        confirmText="Sim, Limpar Tudo"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={isClearing}
+        loadingText="Removendo todos..."
+      />
     </div>
   );
 }

@@ -4,22 +4,20 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createRoomFromSleeper } from '@/app/actions/create-room';
 import { Activity, ArrowRight, Sparkles } from 'lucide-react';
+import { useToast } from '@/components/ui/toast/ToastProvider';
 
 export function CreateRoomForm() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [leagueId, setLeagueId] = useState('');
   const [adminPasscode, setAdminPasscode] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError(null);
-    setSuccess(null);
 
     if (!leagueId || !adminPasscode) {
-      setError('Informe o ID da Liga e uma senha de administrador.');
+      showToast('error', 'Informe o ID da Liga e uma senha de administrador.');
       return;
     }
 
@@ -30,12 +28,12 @@ export function CreateRoomForm() {
       );
 
       if (result.success && result.roomId) {
-        setSuccess('Sala criada com sucesso. Redirecionando...');
+        showToast('success', 'Sala criada com sucesso! Redirecionando...');
         router.push(`/room/${result.roomId}`);
         return;
       }
 
-      setError(result.error || 'Não foi possível criar a sala.');
+      showToast('error', result.error || 'Não foi possível criar a sala.');
     });
   };
 
@@ -84,18 +82,6 @@ export function CreateRoomForm() {
             className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-base text-white outline-none transition ring-0 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/40"
           />
         </div>
-
-        {error && (
-          <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-            {success}
-          </div>
-        )}
 
         <button
           type="submit"

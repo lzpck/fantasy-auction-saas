@@ -7,6 +7,7 @@ import useSWR from 'swr';
 import { formatCurrencyMillions } from '@/lib/format-millions';
 import { useSyncManager } from '@/hooks/useSyncManager';
 import { getPositionColor } from '@/constants/position-colors';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface MarketTableProps {
   roomId: string;
@@ -270,8 +271,8 @@ export function MarketTable({ roomId, onBid, myTeamId }: MarketTableProps) {
             })}
             {items.length === 0 && !isLoading && (
                 <tr>
-                    <td colSpan={9} className="p-8 text-center text-slate-500">
-                        Nenhum jogador encontrado.
+                    <td colSpan={9} className="p-0">
+                        <EmptyState icon={Search} message="Nenhum jogador encontrado." />
                     </td>
                 </tr>
             )}

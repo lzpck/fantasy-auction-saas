@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { AuctionSettings, ContractRule, ContractDurationType, getContractDurationLabel } from '@/types/auction-settings';
 import { updateRoomSettings, deleteRoom } from '@/app/actions/admin-room';
-import { Save, AlertCircle, Check, Trash2, Plus, Info, DollarSign, Clock, Users, Calendar, Gavel, ShieldAlert } from 'lucide-react';
+import { Save, Trash2, Plus, Info, DollarSign, Clock, Users, Calendar, Gavel, ShieldAlert } from 'lucide-react';
 import { parseFromMillions, toMillionsInput, formatToMillions } from '@/lib/format-millions';
+import { useToast } from '@/components/ui/toast/ToastProvider';
+import { AlertDialog } from '@/components/ui/AlertDialog';
 
 interface RoomSettingsFormProps {
   roomId: string;
@@ -12,9 +14,9 @@ interface RoomSettingsFormProps {
 }
 
 export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormProps) {
+  const { showToast } = useToast();
   const [settings, setSettings] = useState<AuctionSettings>(initialSettings);
   const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -37,7 +39,7 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
     if (result.success) {
       window.location.href = '/dashboard';
     } else {
-      setMessage({ type: 'error', text: result.error || 'Erro ao excluir sala.' });
+      showToast('error', result.error || 'Erro ao excluir sala.');
       setIsDeleting(false);
       setShowDeleteModal(false);
     }
@@ -65,32 +67,30 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
 
   const handleSave = async () => {
     setIsSaving(true);
-    setMessage(null);
-    
+
     const result = await updateRoomSettings(roomId, settings);
-    
+
     if (result.success) {
-      setMessage({ type: 'success', text: 'Configurações salvas com sucesso!' });
-      setTimeout(() => setMessage(null), 3000);
+      showToast('success', 'Configurações salvas com sucesso!');
     } else {
-      setMessage({ type: 'error', text: result.error || 'Erro ao salvar configurações.' });
+      showToast('error', result.error || 'Erro ao salvar configurações.');
     }
-    
+
     setIsSaving(false);
   };
 
   const handleAddRule = () => {
     const minInMillions = parseFloat(newRule.min);
     const maxInMillions = newRule.max ? parseFloat(newRule.max) : undefined;
-    
+
     // Validation
     if (isNaN(minInMillions) || minInMillions < 0) {
-      alert('Por favor, insira um valor mínimo válido.');
+      showToast('error', 'Por favor, insira um valor mínimo válido.');
       return;
     }
 
     if (maxInMillions !== undefined && maxInMillions < minInMillions) {
-      alert('O valor máximo deve ser maior ou igual ao valor mínimo.');
+      showToast('error', 'O valor máximo deve ser maior ou igual ao valor mínimo.');
       return;
     }
 
@@ -105,7 +105,7 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
     });
 
     if (hasOverlap) {
-      alert('Esta faixa de valores se sobrepõe a uma regra existente. Por favor, ajuste os valores.');
+      showToast('error', 'Esta faixa de valores se sobrepõe a uma regra existente. Por favor, ajuste os valores.');
       return;
     }
 
@@ -114,7 +114,7 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
     if (newRule.durationType === 'fixed') {
       const fixedYears = parseInt(newRule.fixedYears);
       if (isNaN(fixedYears) || fixedYears < 1) {
-        alert('Por favor, insira um número válido de anos para duração fixa.');
+        showToast('error', 'Por favor, insira um número válido de anos para duração fixa.');
         return;
       }
       ruleToAdd = { minBid: min, maxBid: max, durationType: 'fixed', years: fixedYears };
@@ -149,14 +149,6 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
           <p className="text-slate-400 text-sm mt-1">Gerencie as regras financeiras, de leilão e contratos.</p>
         </div>
         <div className="flex items-center gap-3">
-          {message && (
-            <div className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 animate-in fade-in slide-in-from-right-4 ${
-              message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
-            }`}>
-              {message.type === 'success' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-              {message.text}
-            </div>
-          )}
           <button
             onClick={handleSave}
             disabled={isSaving}
@@ -503,56 +495,24 @@ export function RoomSettingsForm({ roomId, initialSettings }: RoomSettingsFormPr
         </div>
       </div>
 
-      <DeleteRoomModal 
-        isOpen={showDeleteModal} 
-        onClose={() => setShowDeleteModal(false)} 
+      <AlertDialog
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteRoom}
-        isDeleting={isDeleting}
+        title="Excluir Sala?"
+        description={
+          <>
+            Tem certeza que deseja excluir esta sala? Esta ação é{' '}
+            <strong className="text-red-400">irreversível</strong> e apagará todos os
+            dados, incluindo times, jogadores, lances e histórico.
+          </>
+        }
+        confirmText="Sim, Excluir Sala"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={isDeleting}
+        loadingText="Excluindo..."
       />
-    </div>
-  );
-}
-
-function DeleteRoomModal({ isOpen, onClose, onConfirm, isDeleting }: { isOpen: boolean; onClose: () => void; onConfirm: () => void; isDeleting: boolean }) {
-  if (!isOpen) return null;
-  
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-slate-900 border border-red-500/30 rounded-xl p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
-        <div className="flex items-center gap-3 mb-4 text-red-500">
-          <div className="p-3 bg-red-500/10 rounded-full">
-            <ShieldAlert className="w-6 h-6" />
-          </div>
-          <h3 className="text-xl font-bold text-white">Excluir Sala?</h3>
-        </div>
-        
-        <p className="text-slate-300 mb-6 leading-relaxed">
-          Tem certeza que deseja excluir esta sala? Esta ação é <strong className="text-red-400">irreversível</strong> e apagará todos os dados, incluindo times, jogadores, lances e histórico.
-        </p>
-        
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            disabled={isDeleting}
-            className="px-4 py-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors font-medium"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={isDeleting}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-red-900/20"
-          >
-            {isDeleting ? (
-              <>
-                <span className="animate-spin">⏳</span> Excluindo...
-              </>
-            ) : (
-              'Sim, Excluir Sala'
-            )}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

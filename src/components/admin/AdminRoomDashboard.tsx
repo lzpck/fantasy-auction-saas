@@ -9,6 +9,7 @@ import { PlayerImport } from './PlayerImport';
 import { PlayerList } from './PlayerList';
 import { RoomSettingsForm } from './RoomSettingsForm';
 import { TeamManagementTable } from './TeamManagementTable';
+import { useToast } from '@/components/ui/toast/ToastProvider';
 
 interface Team {
   id: string;
@@ -26,6 +27,7 @@ interface AdminRoomDashboardProps {
 }
 
 export function AdminRoomDashboard({ roomId, roomName, settings, teams, userName }: AdminRoomDashboardProps) {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'general' | 'players' | 'teams'>('general');
 
   return (
@@ -74,8 +76,7 @@ export function AdminRoomDashboard({ roomId, roomName, settings, teams, userName
               onClick={() => {
                 const url = `${window.location.origin}/room/${roomId}`;
                 navigator.clipboard.writeText(url);
-                // Simple alert for now, could be a toast
-                alert('Link copiado para a área de transferência!');
+                showToast('success', 'Link copiado para a área de transferência!');
               }}
               className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg border border-white/10 transition-colors"
             >

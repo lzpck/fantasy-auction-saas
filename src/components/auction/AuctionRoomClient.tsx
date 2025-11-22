@@ -12,6 +12,7 @@ import { retractBid } from '@/app/actions/admin-bid';
 import type { RoomStatus } from '@prisma/client';
 import { BidModal } from './BidModal';
 import { AuctionSettings } from '@/types/auction-settings';
+import { useToast } from '@/components/ui/toast/ToastProvider';
 
 interface AuctionRoomClientProps {
   roomId: string;
@@ -19,6 +20,7 @@ interface AuctionRoomClientProps {
 }
 
 export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
+  const { showToast } = useToast();
   const { data, isLoading, mutate, isRealtimeUpdate } = useAuctionStore(roomId);
   const { triggerSync } = useSyncManager(roomId);
   const [bidModalOpen, setBidModalOpen] = useState(false);
@@ -33,7 +35,7 @@ export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
       if (player?.expiresAt && new Date(player.expiresAt).getTime() < Date.now()) {
         setBidModalOpen(false);
         setSelectedPlayer(null);
-        alert("Lance expirado");
+        showToast('warning', 'Lance expirado');
       }
     }
   }, [data, bidModalOpen, selectedPlayer]);
@@ -63,7 +65,7 @@ export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
     if (player) {
         // Check if expired
         if (player.expiresAt && new Date(player.expiresAt).getTime() < Date.now()) {
-            alert("Lance expirado");
+            showToast('warning', 'Lance expirado');
             return;
         }
 
@@ -91,7 +93,7 @@ export function AuctionRoomClient({ roomId, isOwner }: AuctionRoomClientProps) {
       // Trigger global sync to update all components immediately
       await triggerSync('bid_retracted');
     } else {
-      alert(result.error);
+      showToast('error', result.error || 'Erro ao retirar lance');
     }
   };
 

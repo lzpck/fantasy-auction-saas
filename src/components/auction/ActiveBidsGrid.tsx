@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react';
 import type { AuctionSettings } from '@/types/auction-settings';
 import { formatCurrencyMillions } from '@/lib/format-millions';
 import { getPositionColor } from '@/constants/position-colors';
+import { AlertDialog } from '@/components/ui/AlertDialog';
+import { useToast } from '@/components/ui/toast/ToastProvider';
 
 
 interface ActiveBidsGridProps {
@@ -63,7 +65,10 @@ export function ActiveBidsGrid({
   isOwner,
   settings,
 }: ActiveBidsGridProps) {
+  const { showToast } = useToast();
   const [now, setNow] = useState<number | null>(null);
+  const [itemToRetract, setItemToRetract] = useState<string | null>(null);
+  const [isRetracting, setIsRetracting] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -74,10 +79,18 @@ export function ActiveBidsGrid({
     return null;
   }
 
-  const handleRetract = async (itemId: string) => {
-    if (!confirm('Tem certeza que deseja retirar o último lance deste item?')) return;
-    if (onRetract) {
-      onRetract(itemId);
+  const confirmRetract = async () => {
+    if (!itemToRetract || !onRetract) return;
+
+    setIsRetracting(true);
+    try {
+      await onRetract(itemToRetract);
+      showToast('success', 'Lance retirado com sucesso!');
+    } catch (error) {
+      showToast('error', 'Erro ao retirar lance.');
+    } finally {
+      setIsRetracting(false);
+      setItemToRetract(null);
     }
   };
 
@@ -239,8 +252,9 @@ export function ActiveBidsGrid({
                 {/* Admin Retract Button */}
                 {isOwner && (
                   <button
-                    onClick={() => handleRetract(item.id)}
-                    className="absolute top-2 right-2 p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 rounded-full transition-colors"
+                    onClick={() => setItemToRetract(item.id)}
+                    disabled={isRetracting && itemToRetract === item.id}
+                    className="absolute top-2 right-2 p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Retirar último lance"
                   >
                     <Undo2 size={14} />
@@ -251,6 +265,19 @@ export function ActiveBidsGrid({
           })}
         </AnimatePresence>
       </div>
+
+      <AlertDialog
+        isOpen={!!itemToRetract}
+        onClose={() => setItemToRetract(null)}
+        onConfirm={confirmRetract}
+        title="Retirar Lance?"
+        description="Tem certeza que deseja retirar o último lance deste item? Esta ação não pode ser desfeita."
+        confirmText="Sim, Retirar"
+        cancelText="Cancelar"
+        variant="warning"
+        isLoading={isRetracting}
+        loadingText="Retirando..."
+      />
     </div>
   );
 }

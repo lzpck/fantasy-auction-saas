@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { updateTeamStats, createTeam } from '@/app/actions/admin-room';
-import { Save, Check, AlertCircle, Plus } from 'lucide-react';
+import { Save, Plus, Users2 } from 'lucide-react';
 import { parseFromMillions, toMillionsInput } from '@/lib/format-millions';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { useToast } from '@/components/ui/toast/ToastProvider';
 
 interface Team {
   id: string;
@@ -18,9 +20,9 @@ interface TeamManagementTableProps {
 }
 
 export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps) {
+  const { showToast } = useToast();
   const [editingTeams, setEditingTeams] = useState<Record<string, { name: string; budget: number; spots: number }>>({});
   const [saving, setSaving] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // New Team State - budget stored in millions for input
   const [newTeam, setNewTeam] = useState({ name: '', budget: 200, spots: 15 });
@@ -44,7 +46,6 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
     if (!updates) return;
 
     setSaving(teamId);
-    setMessage(null);
 
     // Convert budget from millions to actual value
     const actualBudget = parseFromMillions(updates.budget);
@@ -52,14 +53,14 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
     const result = await updateTeamStats(teamId, updates.name, actualBudget, updates.spots);
 
     if (result.success) {
-      setMessage({ type: 'success', text: 'Time atualizado com sucesso!' });
+      showToast('success', 'Time atualizado com sucesso!');
       setEditingTeams(prev => {
         const newState = { ...prev };
         delete newState[teamId];
         return newState;
       });
     } else {
-      setMessage({ type: 'error', text: result.error || 'Erro ao atualizar time.' });
+      showToast('error', result.error || 'Erro ao atualizar time.');
     }
 
     setSaving(null);
@@ -68,12 +69,11 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
   const handleCreateTeam = async () => {
     if (!roomId) return;
     if (!newTeam.name.trim()) {
-      setMessage({ type: 'error', text: 'Nome do time é obrigatório.' });
+      showToast('error', 'Nome do time é obrigatório.');
       return;
     }
 
     setIsCreating(true);
-    setMessage(null);
 
     // Convert budget from millions to actual value
     const actualBudget = parseFromMillions(newTeam.budget);
@@ -81,10 +81,10 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
     const result = await createTeam(roomId, newTeam.name, actualBudget, newTeam.spots);
 
     if (result.success) {
-      setMessage({ type: 'success', text: 'Time criado com sucesso!' });
+      showToast('success', 'Time criado com sucesso!');
       setNewTeam({ name: '', budget: 200, spots: 15 });
     } else {
-      setMessage({ type: 'error', text: result.error || 'Erro ao criar time.' });
+      showToast('error', result.error || 'Erro ao criar time.');
     }
 
     setIsCreating(false);
@@ -92,15 +92,6 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
 
   return (
     <div className="space-y-6">
-      {message && (
-        <div className={`p-3 rounded-md text-sm flex items-center gap-2 ${
-          message.type === 'success' ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-900' : 'bg-red-900/30 text-red-400 border border-red-900'
-        }`}>
-          {message.type === 'success' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-          {message.text}
-        </div>
-      )}
-
       {roomId && (
         <div className="p-4 border border-white/10 rounded-lg bg-slate-900/50 space-y-4">
           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -215,8 +206,8 @@ export function TeamManagementTable({ teams, roomId }: TeamManagementTableProps)
             })}
             {teams.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
-                  Nenhum time encontrado nesta sala.
+                <td colSpan={4} className="p-0">
+                  <EmptyState icon={Users2} message="Nenhum time encontrado nesta sala." />
                 </td>
               </tr>
             )}

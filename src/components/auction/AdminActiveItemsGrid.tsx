@@ -7,6 +7,9 @@ import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { formatCurrencyMillions } from '@/lib/format-millions';
 import { getPositionColor } from '@/constants/position-colors';
+import { AlertDialog } from '@/components/ui/AlertDialog';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { useToast } from '@/components/ui/toast/ToastProvider';
 
 interface AdminActiveItemsGridProps {
   roomId: string;
@@ -53,6 +56,10 @@ function Countdown({ expiresAt }: { expiresAt: Date | null }) {
 }
 
 export function AdminActiveItemsGrid({ roomId, onRetract }: AdminActiveItemsGridProps) {
+  const { showToast } = useToast();
+  const [itemToRetract, setItemToRetract] = useState<string | null>(null);
+  const [isRetracting, setIsRetracting] = useState(false);
+
   const { data, mutate } = useSWR(
     `/api/room/${roomId}/admin/active-items`,
     fetcher,
@@ -67,19 +74,24 @@ export function AdminActiveItemsGrid({ roomId, onRetract }: AdminActiveItemsGrid
     expiresAt: Date | null
   })[] = data?.activeItems || [];
 
-  const handleRetract = async (itemId: string) => {
-    if (!confirm('Tem certeza que deseja retirar o último lance deste item?')) return;
-    await onRetract(itemId);
-    mutate(); // Refresh the data after retraction
+  const confirmRetract = async () => {
+    if (!itemToRetract) return;
+
+    setIsRetracting(true);
+    try {
+      await onRetract(itemToRetract);
+      await mutate(); // Refresh the data after retraction
+      showToast('success', 'Lance retirado com sucesso!');
+    } catch (error) {
+      showToast('error', 'Erro ao retirar lance.');
+    } finally {
+      setIsRetracting(false);
+      setItemToRetract(null);
+    }
   };
 
   if (activeItems.length === 0) {
-    return (
-      <div className="text-center py-8 text-slate-500">
-        <Shield size={48} className="mx-auto mb-2 opacity-50" />
-        <p className="text-sm">Nenhum lance ativo no momento</p>
-      </div>
-    );
+    return <EmptyState icon={Shield} message="Nenhum lance ativo no momento" />;
   }
 
   return (
@@ -182,8 +194,9 @@ export function AdminActiveItemsGrid({ roomId, onRetract }: AdminActiveItemsGrid
 
                     {/* Retract Button */}
                     <button
-                      onClick={() => handleRetract(item.id)}
-                      className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg shadow-lg shadow-rose-900/50 active:scale-95 transition-all flex items-center justify-center gap-2"
+                      onClick={() => setItemToRetract(item.id)}
+                      disabled={isRetracting && itemToRetract === item.id}
+                      className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg shadow-lg shadow-rose-900/50 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Undo2 size={16} />
                       Retirar Lance
@@ -194,6 +207,19 @@ export function AdminActiveItemsGrid({ roomId, onRetract }: AdminActiveItemsGrid
           </AnimatePresence>
         </div>
       </div>
+
+      <AlertDialog
+        isOpen={!!itemToRetract}
+        onClose={() => setItemToRetract(null)}
+        onConfirm={confirmRetract}
+        title="Retirar Lance?"
+        description="Tem certeza que deseja retirar o último lance deste item? Esta ação não pode ser desfeita."
+        confirmText="Sim, Retirar"
+        cancelText="Cancelar"
+        variant="warning"
+        isLoading={isRetracting}
+        loadingText="Retirando..."
+      />
     </div>
   );
 }

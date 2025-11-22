@@ -5,26 +5,27 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { registerAdmin } from '@/app/actions/admin-auth';
 import { ArrowRight, Loader2 } from 'lucide-react';
+import { useToast } from '@/components/ui/toast/ToastProvider';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
     startTransition(async () => {
       const result = await registerAdmin(name, email, password);
 
       if (result.success) {
+        showToast('success', 'Conta criada com sucesso!');
         router.push('/dashboard');
       } else {
-        setError(result.error || 'Erro ao criar conta');
+        showToast('error', result.error || 'Erro ao criar conta');
       }
     });
   };
@@ -78,12 +79,6 @@ export default function RegisterPage() {
             placeholder="••••••••"
           />
         </div>
-
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-200 text-sm p-3 rounded-lg">
-            {error}
-          </div>
-        )}
 
         <button
           type="submit"
