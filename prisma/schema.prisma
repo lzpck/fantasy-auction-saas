@@ -29,12 +29,7 @@ enum BidStatus {
   VOID      // lances invalidados tecnicamente
 }
 
-enum NotificationType {
-  OUTBID
-  WINNER_RESTORED // quando alguem retira o lance e voce volta a ganhar
-  AUCTION_WON
-  SYSTEM
-}
+
 
 // --- MODELS ---
 
@@ -50,7 +45,7 @@ model User {
 model AuctionRoom {
   id        String     @id @default(cuid())
   name      String
-  passcode  String     // senha do admin/comissario
+
   sleeperId String?    // ID da liga no Sleeper (opcional)
   status    RoomStatus @default(DRAFT)
   
@@ -84,7 +79,7 @@ model AuctionTeam {
   
   auctionRoom   AuctionRoom @relation(fields: [auctionRoomId], references: [id], onDelete: Cascade)
   bids          Bid[]
-  notifications Notification[]
+
 
   @@index([auctionRoomId])
 }
@@ -132,18 +127,4 @@ model Bid {
   @@index([teamId])
 }
 
-model Notification {
-  id        String           @id @default(cuid())
-  teamId    String
-  type      NotificationType
-  message   String
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
-  
-  // Metadados opcionais para navegacao (ex: clicar na notif e ir ate o jogador)
-  relatedItemId String?
 
-  team      AuctionTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
-
-  @@index([teamId, isRead]) // indice otimizado para o "Smart Polling"
-}

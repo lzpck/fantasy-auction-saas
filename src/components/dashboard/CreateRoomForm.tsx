@@ -10,21 +10,20 @@ export function CreateRoomForm() {
   const router = useRouter();
   const { showToast } = useToast();
   const [leagueId, setLeagueId] = useState('');
-  const [adminPasscode, setAdminPasscode] = useState('');
+
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!leagueId || !adminPasscode) {
-      showToast('error', 'Informe o ID da Liga e uma senha de administrador.');
+    if (!leagueId) {
+      showToast('error', 'Informe o ID da Liga.');
       return;
     }
 
     startTransition(async () => {
       const result = await createRoomFromSleeper(
-        leagueId.trim(),
-        adminPasscode.trim()
+        leagueId.trim()
       );
 
       if (result.success && result.roomId) {
@@ -68,20 +67,7 @@ export function CreateRoomForm() {
           />
         </div>
 
-        <div className="space-y-2">
-          <label className="flex items-center justify-between text-sm font-semibold text-slate-200">
-            <span>Senha do War Room (PIN)</span>
-            <span className="text-xs text-slate-400">
-              mínimo 4 caracteres
-            </span>
-          </label>
-          <input
-            value={adminPasscode}
-            onChange={(event) => setAdminPasscode(event.target.value)}
-            placeholder="PIN para acessar o War Room"
-            className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-base text-white outline-none transition ring-0 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/40"
-          />
-        </div>
+
 
         <button
           type="submit"

@@ -25,6 +25,9 @@ export async function toggleRoomStatus(roomId: string) {
       return { success: false, error: 'Forbidden: Only the room owner can change status' };
     }
 
+    // DRAFT → OPEN (iniciar pela primeira vez)
+    // OPEN → PAUSED (pausar)
+    // PAUSED → OPEN (retomar)
     const newStatus = room.status === 'OPEN' ? 'PAUSED' : 'OPEN';
 
     await prisma.auctionRoom.update({

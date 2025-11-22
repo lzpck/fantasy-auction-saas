@@ -59,8 +59,14 @@ export function AuctionHeader({
                 <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
                     Status
                 </span>
-                <span className={`font-bold ${roomStatus === 'OPEN' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {roomStatus === 'OPEN' ? 'EM ANDAMENTO' : 'PAUSADO'}
+                <span className={`font-bold ${
+                    roomStatus === 'OPEN' ? 'text-emerald-400' :
+                    roomStatus === 'PAUSED' ? 'text-amber-400' :
+                    'text-slate-400'
+                }`}>
+                    {roomStatus === 'OPEN' ? 'EM ANDAMENTO' :
+                     roomStatus === 'PAUSED' ? 'PAUSADO' :
+                     'RASCUNHO'}
                 </span>
             </div>
             {isOwner && (
@@ -74,7 +80,11 @@ export function AuctionHeader({
                           : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
                       }
                   `}
-                  title={roomStatus === 'OPEN' ? "Pausar Leilão" : "Iniciar Leilão"}
+                  title={
+                      roomStatus === 'OPEN' ? "Pausar Leilão" :
+                      roomStatus === 'PAUSED' ? "Retomar Leilão" :
+                      "Iniciar Leilão"
+                  }
               >
                   {roomStatus === 'OPEN' ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
               </button>

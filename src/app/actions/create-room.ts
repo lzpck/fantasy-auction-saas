@@ -99,13 +99,12 @@ function calculateRosterSpots(
 
 export async function createRoomFromSleeper(
   sleeperLeagueId: string,
-  adminPasscode: string,
 ): Promise<CreateRoomResult> {
   try {
-    if (!sleeperLeagueId || !adminPasscode) {
+    if (!sleeperLeagueId) {
       return {
         success: false,
-        error: 'League ID e senha do admin sao obrigatorios',
+        error: 'League ID e obrigatorio',
       };
     }
 
@@ -116,12 +115,7 @@ export async function createRoomFromSleeper(
       };
     }
 
-    if (adminPasscode.length < 4) {
-      return {
-        success: false,
-        error: 'Senha do admin deve ter pelo menos 4 caracteres',
-      };
-    }
+
 
     const session = await getAdminSession();
 
@@ -178,7 +172,7 @@ export async function createRoomFromSleeper(
     const room = await prisma.auctionRoom.create({
       data: {
         name: league.name || `Sleeper League ${sleeperLeagueId}`,
-        passcode: adminPasscode,
+
         sleeperId: sleeperLeagueId,
         status: 'DRAFT',
         ownerId: session.userId,
