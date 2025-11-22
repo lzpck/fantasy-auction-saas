@@ -32,6 +32,7 @@ O **War Room Fantasy** é uma plataforma SaaS desenvolvida para facilitar a real
 ## Funcionalidades Principais
 
 ### Para Administradores
+
 - Criação e configuração de salas de leilão personalizadas
 - Importação de jogadores via CSV ou Excel
 - Gerenciamento de times participantes
@@ -41,6 +42,7 @@ O **War Room Fantasy** é uma plataforma SaaS desenvolvida para facilitar a real
 - Dashboard administrativo com visão completa da sala
 
 ### Para Participantes
+
 - Acesso seguro aos times via PIN
 - Visualização em tempo real dos lances ativos
 - Submissão de lances com valores e anos de contrato
@@ -49,6 +51,7 @@ O **War Room Fantasy** é uma plataforma SaaS desenvolvida para facilitar a real
 - Grade de times com estatísticas atualizadas
 
 ### Recursos Técnicos
+
 - Sincronização em tempo real via polling otimizado
 - Validação de lances e regras de negócio no servidor
 - Persistência de dados com SQLite via Prisma ORM
@@ -58,16 +61,19 @@ O **War Room Fantasy** é uma plataforma SaaS desenvolvida para facilitar a real
 ## Requisitos do Sistema
 
 ### Software Necessário
+
 - **Node.js**: versão 18.x ou superior
 - **npm**: versão 9.x ou superior (ou yarn/pnpm/bun como alternativa)
 - **Git**: para controle de versão
 
 ### Sistemas Operacionais Suportados
+
 - Windows 10/11
 - macOS 10.15 ou superior
 - Linux (Ubuntu 20.04+, Debian, Fedora, etc.)
 
 ### Requisitos de Hardware Mínimos
+
 - 2 GB de RAM
 - 500 MB de espaço em disco
 - Conexão com a internet para instalação de dependências
@@ -252,6 +258,7 @@ Após fazer login, acesse o dashboard e clique em "Criar Nova Sala":
 Na página administrativa da sala, utilize a funcionalidade de importação:
 
 **Formato CSV esperado:**
+
 ```csv
 name,position,nflTeam
 Patrick Mahomes,QB,KC
@@ -297,34 +304,41 @@ GET /api/room/[id]/admin/active-items
 ## Tecnologias Utilizadas
 
 ### Framework e Bibliotecas Core
+
 - **[Next.js 16](https://nextjs.org/)**: Framework React com App Router e Server Actions
 - **[React 19](https://react.dev/)**: Biblioteca de interface do usuário
 - **[TypeScript 5](https://www.typescriptlang.org/)**: Superset tipado de JavaScript
 
 ### Estilização e UI
+
 - **[Tailwind CSS 4](https://tailwindcss.com/)**: Framework CSS utility-first
 - **[Framer Motion](https://www.framer.com/motion/)**: Biblioteca de animações
 - **[Lucide React](https://lucide.dev/)**: Conjunto de ícones modernos
 - **[clsx](https://github.com/lukeed/clsx)** + **[tailwind-merge](https://github.com/dcastil/tailwind-merge)**: Utilitários para classes CSS
 
 ### Banco de Dados e ORM
+
 - **[Prisma 6](https://www.prisma.io/)**: ORM moderno para TypeScript
 - **[SQLite](https://www.sqlite.org/)**: Banco de dados relacional leve
 
 ### Autenticação e Segurança
+
 - **[jose](https://github.com/panva/jose)**: Biblioteca para JWT
 - **[bcryptjs](https://github.com/dcodeIO/bcrypt.js)**: Hashing de senhas
 
 ### Gerenciamento de Estado e Dados
+
 - **[SWR](https://swr.vercel.app/)**: Hooks para data fetching e caching
 - **Zustand** (via hooks customizados): Gerenciamento de estado leve
 
 ### Utilitários
+
 - **[Papa Parse](https://www.papaparse.com/)**: Parser de CSV
 - **[xlsx](https://sheetjs.com/)**: Leitura e escrita de arquivos Excel
 - **[dotenv](https://github.com/motdotla/dotenv)**: Carregamento de variáveis de ambiente
 
 ### Ferramentas de Desenvolvimento
+
 - **[ESLint 9](https://eslint.org/)**: Linting de código
 - **[eslint-config-next](https://nextjs.org/docs/app/building-your-application/configuring/eslint)**: Configuração ESLint para Next.js
 
@@ -335,33 +349,39 @@ Contribuições são muito bem-vindas! Este projeto segue as boas práticas de c
 ### Como Contribuir
 
 1. **Fork o Repositório**
+
    ```bash
    # Clique no botão "Fork" no GitHub
    ```
 
 2. **Clone seu Fork**
+
    ```bash
    git clone https://github.com/seu-usuario/fantasy-auction-saas.git
    cd fantasy-auction-saas
    ```
 
 3. **Crie uma Branch para sua Feature**
+
    ```bash
    git checkout -b feature/minha-nova-funcionalidade
    ```
 
 4. **Faça suas Alterações**
+
    - Escreva código limpo e bem documentado
    - Siga as convenções de código do projeto
    - Adicione testes quando aplicável
 
 5. **Commit suas Mudanças**
+
    ```bash
    git add .
    git commit -m "feat: adiciona funcionalidade X"
    ```
 
    **Convenções de Commit:**
+
    - `feat:` nova funcionalidade
    - `fix:` correção de bug
    - `docs:` alterações na documentação
@@ -371,6 +391,7 @@ Contribuições são muito bem-vindas! Este projeto segue as boas práticas de c
    - `chore:` atualização de dependências, configurações, etc
 
 6. **Push para seu Fork**
+
    ```bash
    git push origin feature/minha-nova-funcionalidade
    ```
@@ -428,7 +449,8 @@ Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 ## Créditos e Agradecimentos
 
 ### Autor Principal
-- **Desenvolvedor**: Equipe War Room Fantasy
+
+- **Desenvolvedor**: Leandro Zepechouka
 
 ### Bibliotecas e Ferramentas Open Source
 
