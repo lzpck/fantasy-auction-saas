@@ -6,6 +6,7 @@ import { Clock, Undo2, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { formatCurrencyMillions } from '@/lib/format-millions';
+import { getPositionColor } from '@/constants/position-colors';
 
 interface AdminActiveItemsGridProps {
   roomId: string;
@@ -133,13 +134,7 @@ export function AdminActiveItemsGrid({ roomId, onRetract }: AdminActiveItemsGrid
                           {item.name}
                         </h3>
                         <div className="flex items-center gap-2 text-xs text-slate-400">
-                          <span className={`px-1.5 py-0.5 rounded font-bold
-                            ${
-                              ['DL', 'LB', 'DB'].includes(item.position)
-                                ? 'bg-purple-900/50 text-purple-300 border border-purple-700/50'
-                                : 'bg-slate-800'
-                            }
-                          `}>
+                          <span className={`px-1.5 py-0.5 rounded font-bold ${getPositionColor(item.position)}`}>
                             {item.position}
                           </span>
                           <span>{item.nflTeam}</span>

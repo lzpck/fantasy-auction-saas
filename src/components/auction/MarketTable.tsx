@@ -6,6 +6,7 @@ import { Gavel, UserPlus, Search, ChevronLeft, ChevronRight, Clock, RefreshCw } 
 import useSWR from 'swr';
 import { formatCurrencyMillions } from '@/lib/format-millions';
 import { useSyncManager } from '@/hooks/useSyncManager';
+import { getPositionColor } from '@/constants/position-colors';
 
 interface MarketTableProps {
   roomId: string;
@@ -180,19 +181,7 @@ export function MarketTable({ roomId, onBid, myTeamId }: MarketTableProps) {
                     <span
                       className={`
                       px-2 py-1 rounded text-xs font-bold w-12 text-center inline-block
-                      ${
-                        item.position === 'QB'
-                          ? 'bg-pink-900/50 text-pink-300 border border-pink-700/50'
-                          : item.position === 'RB'
-                          ? 'bg-green-900/50 text-green-300 border border-green-700/50'
-                          : item.position === 'WR'
-                          ? 'bg-blue-900/50 text-blue-300 border border-blue-700/50'
-                          : item.position === 'TE'
-                          ? 'bg-orange-900/50 text-orange-300 border border-orange-700/50'
-                          : ['DL', 'LB', 'DB'].includes(item.position)
-                          ? 'bg-purple-900/50 text-purple-300 border border-purple-700/50'
-                          : 'bg-slate-800 text-slate-400'
-                      }
+                      ${getPositionColor(item.position)}
                     `}
                     >
                       {item.position}
