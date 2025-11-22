@@ -218,18 +218,18 @@ export function BidModal({
                     )}
                   </label>
 
-                  {/* Show input if rule allows selection */}
-                  {settings.contractLogic?.enabled && currentRule && currentRule.durationType !== 'fixed' ? (
+                  {/* Show input if rule allows selection OR if logic is disabled OR if no rule applies */}
+                  {(!settings.contractLogic?.enabled || !currentRule || currentRule.durationType !== 'fixed') ? (
                     <div className="space-y-2">
                       <input
                         type="number"
                         value={years}
                         onChange={(e) => setYears(Number(e.target.value))}
-                        min={currentRule.minYears || 1}
+                        min={currentRule?.minYears || 1}
                         max={10}
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-lg font-mono text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                       />
-                      {currentRule.durationType !== 'any' && (
+                      {currentRule && currentRule.durationType !== 'any' && (
                         <div className="flex items-start gap-2 bg-blue-950/20 border border-blue-900/30 rounded-lg p-2">
                           <Info className="w-3 h-3 text-blue-400 mt-0.5 shrink-0" />
                           <p className="text-xs text-blue-300">
